@@ -12,6 +12,12 @@ tools/analyze_audio.sh narration/trial-01/raw/trial-01_take01.wav
 # 2) 言い直しの合図（手拍子）の候補を探し、cuts.txt を書く（人が確認）
 python3 tools/find_claps.py narration/trial-01/raw/trial-01_take01.wav
 
+# 2b) 文字起こし（faster-whisper、無料・ローカル）。合図の前後で「どこから読み直したか」を決める材料にする。字幕の下書き(.srt)も出る
+python3 tools/transcribe.py narration/trial-01/raw/trial-01_take01.wav --out narration/trial-01/out/transcript --model small
+python3 tools/find_claps.py narration/trial-01/raw/trial-01_take01.wav > narration/trial-01/out/claps.txt
+python3 tools/retake_helper.py narration/trial-01/out/transcript.tsv narration/trial-01/out/claps.txt > narration/trial-01/cuts.txt
+#    → cuts.txt を人が確認・修正する
+
 # 3) 言い直し区間を取り除く
 python3 tools/apply_cuts.py narration/trial-01/raw/trial-01_take01.wav narration/trial-01/cuts.txt narration/trial-01/out/cut.wav
 
@@ -28,6 +34,6 @@ python3 tools/make_thumbnail.py --title 雨ニモマケズ --author 宮沢賢治
 tools/make_video.sh narration/trial-01/out/thumbnail.png narration/trial-01/out/trial-01_mastered.wav narration/trial-01/out/trial-01.mp4
 ```
 
-依存：ffmpeg 6 以上、Python 3 と Pillow、NumPy。すべて無料。
+依存：ffmpeg 6 以上、Python 3 と Pillow、NumPy、faster-whisper（`pip install faster-whisper`。初回にモデルを取得する）。すべて無料。
 
 目安：YouTube はおおむね -14 LUFS を基準に再生音量をそろえるため、整音の目標を -14 LUFS、トゥルーピーク -1 dBTP とした。

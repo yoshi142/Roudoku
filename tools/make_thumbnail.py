@@ -4,6 +4,7 @@
 使い方:
   python3 tools/make_thumbnail.py --title 雨ニモマケズ --author 宮沢賢治 \
       --series 朗読 --out narration/trial-01/out/thumbnail.png
+題名が長いときは「｜」で列を分ける（例: --title "火星の衛星へ｜日本の探査機の話"）。13字を超えると自動で2列になる。
 縦書きの題名を右側に、作者名を左下に置く。フォントは tools/fonts/ipaexm.ttf（fetch_fonts.sh で取得）。
 """
 import argparse, os, sys
@@ -70,18 +71,27 @@ def main():
     d.line([(W - 240, 90), (W - 240, H - 90)], fill=a.accent, width=3)
     d.line([(W - 1100, 90), (W - 1100, H - 90)], fill=a.accent, width=1)
 
-    # 題名（縦書き、1行が収まるサイズに自動調整）
-    n = max(len(a.title), 1)
-    size = int(min(190, (H - 240) / (n * 1.08)))
+    # 題名（縦書き）。「｜」か改行で列を分ける。長い題名は自動で2列にする（右の列から読む）
+    cols = [c for c in a.title.replace("\n", "｜").split("｜") if c]
+    if len(cols) == 1 and len(cols[0]) > 13:
+        t = cols[0]
+        cut = max([i + 1 for i in range(4, len(t) - 4) if t[i] in "、。 　・"] or [len(t) // 2 + len(t) % 2])
+        cols = [t[:cut], t[cut:]]
+    longest = max(len(c) for c in cols)
+    size = int(min(190, (H - 240) / (longest * 1.08), 190 if len(cols) == 1 else 150))
     f_title = load_font(size)
-    total = size * 1.08 * n
+    total = size * 1.08 * longest
     y_top = (H - total) / 2 + 20
-    draw_vertical(img, a.title, W - 470, y_top, f_title, a.fg)
+    col_gap = size * 1.5
+    x_right = W - 470
+    for i, c in enumerate(cols):
+        draw_vertical(img, c, x_right - i * col_gap, y_top, f_title, a.fg)
+    x_left_of_title = x_right - (len(cols) - 1) * col_gap
 
     # 作者名（縦書き、題名の左、小さめ）
     if a.author:
         f_author = load_font(int(size * 0.42))
-        draw_vertical(img, a.author, W - 740, y_top + size * 0.3, f_author, a.fg)
+        draw_vertical(img, a.author, x_left_of_title - size * 1.4, y_top + size * 0.3, f_author, a.fg)
 
     # 左下：シリーズ名と注記（横書き）
     f_series = load_font(44)
