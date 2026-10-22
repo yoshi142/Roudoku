@@ -1,0 +1,17 @@
+# 音声・動画・サムネイル等の成果物はコミットしない（容量が大きく、原音は別保管）
+*.wav
+*.flac
+*.mp3
+*.m4a
+*.aac
+*.ogg
+*.opus
+*.mp4
+*.mov
+*.mkv
+*.webm
+narration/**/raw/
+narration/**/out/
+# 一時ファイル
+*.tmp
+__pycache__/
