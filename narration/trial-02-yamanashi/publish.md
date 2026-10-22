@@ -39,4 +39,4 @@ https://www.aozora.gr.jp/cards/000081/card46605.html
 ## 公開時の設定メモ
 
 - 開示の扱いは trial-01/publish.md と同じ（本人の実録音、AI は整音と静止画の支援。開示の対象に当たらないと判断）
-- サムネイル：`out/thumbnail.png`
+- サムネイル：`out/thumbnail.png`（題名に「クラムボンはわらったよ」を必ず入れる。本人の指定）
