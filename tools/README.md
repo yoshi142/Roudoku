@@ -29,6 +29,8 @@ tools/analyze_audio.sh narration/trial-01/out/trial-01_mastered.wav
 
 # 6) 題名入りの静止画（1920×1080）
 python3 tools/make_thumbnail.py --title 雨ニモマケズ --author 宮沢賢治 --series 朗読 --note 青空文庫より --out narration/trial-01/out/thumbnail.png
+#    やまなし（本人の指定の文言を入れる。「｜」で列を分けると文字が大きくなる）
+# python3 tools/make_thumbnail.py --title "クラムボンは｜かぷかぷ笑ったよ｜やまなし" --author 宮沢賢治 --series 朗読 --note 青空文庫より --out narration/trial-02-yamanashi/out/thumbnail.png
 
 # 7) 動画
 tools/make_video.sh narration/trial-01/out/thumbnail.png narration/trial-01/out/trial-01_mastered.wav narration/trial-01/out/trial-01.mp4
