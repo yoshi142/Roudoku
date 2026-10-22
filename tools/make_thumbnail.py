@@ -73,10 +73,19 @@ def main():
 
     # 題名（縦書き）。「｜」か改行で列を分ける。長い題名は自動で2列にする（右の列から読む）
     cols = [c for c in a.title.replace("\n", "｜").split("｜") if c]
-    if len(cols) == 1 and len(cols[0]) > 13:
+    if len(cols) == 1 and len(cols[0]) > 11:
+        # 1列11字を上限に、句読点や空白の近くで切って列を増やす（列の長さをそろえる）
+        import math
         t = cols[0]
-        cut = max([i + 1 for i in range(4, len(t) - 4) if t[i] in "、。 　・"] or [len(t) // 2 + len(t) % 2])
-        cols = [t[:cut], t[cut:]]
+        ncols = math.ceil(len(t) / 11)
+        target = math.ceil(len(t) / ncols)
+        cols, rest = [], t
+        while len(rest) > target:
+            cands = [i + 1 for i in range(max(2, target - 3), min(len(rest) - 2, target + 2)) if rest[i] in "、。 　・｜"]
+            cut = cands[-1] if cands else target
+            cols.append(rest[:cut]); rest = rest[cut:]
+        if rest:
+            cols.append(rest)
     longest = max(len(c) for c in cols)
     size = int(min(190, (H - 240) / (longest * 1.08), 190 if len(cols) == 1 else 150))
     f_title = load_font(size)
@@ -90,7 +99,7 @@ def main():
 
     # 作者名（縦書き、題名の左、小さめ）
     if a.author:
-        f_author = load_font(int(size * 0.42))
+        f_author = load_font(max(40, int(size * 0.42)))
         draw_vertical(img, a.author, x_left_of_title - size * 1.4, y_top + size * 0.3, f_author, a.fg)
 
     # 左下：シリーズ名と注記（横書き）
