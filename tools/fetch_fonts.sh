@@ -15,8 +15,8 @@ rm -rf "$TMP"
 echo "fonts: $DEST"
 fi
 
-# 太い明朝体（サムネイル v2 用）。SIL Open Font License 1.1（商用利用・同梱可）
-for f in "zenoldmincho/ZenOldMincho-Black.ttf" "shipporiminchob1/ShipporiMinchoB1-ExtraBold.ttf"; do
+# 太い明朝体（サムネイル v2 用）と、字幕用の明朝体（しっぽり明朝 Regular/Medium）。SIL Open Font License 1.1（商用利用・同梱可）
+for f in "zenoldmincho/ZenOldMincho-Black.ttf" "shipporiminchob1/ShipporiMinchoB1-ExtraBold.ttf" "shipporimincho/ShipporiMincho-Regular.ttf" "shipporimincho/ShipporiMincho-Medium.ttf"; do
   n=$(basename "$f")
   test -s "$DEST/$n" || curl -sS -L --max-time 300 -o "$DEST/$n" "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/$f"
 done

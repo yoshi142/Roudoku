@@ -19,6 +19,7 @@
       --script narration/trial-01/script.md [--model medium] [--comma 0.6] [--period 1.5]
 出力（<out>/）:
   words.json      文字起こし（単語ごとの時刻）
+  timeline.json   残した句が edited.wav の何秒にあるかと、台本の位置（字幕づくりに使う）
   phrases.tsv     句の一覧（開始、終了、文字、判定、後ろの間の種類）。手で直して --phrases で読み込み直せる
   report.md       判定の理由、台本との違い、統計
   edited.wav      切り詰めと間のそろえを済ませた音声（整音前、48kHz/24bit モノラル）
@@ -176,7 +177,7 @@ def script_text(path):
 # ---------- 本体 ----------
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("input")
+    ap.add_argument("input", nargs="+", help="録音ファイル。複数なら録った順に並べる（あとのファイルの読みが優先される。録り直しの差し替えに使う）")
     ap.add_argument("--out", required=True)
     ap.add_argument("--script", help="台本 md（読みの比較と、文字起こしの手がかりに使う）")
     ap.add_argument("--model", default="medium")
@@ -192,7 +193,15 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
 
-    audio = load(a.input, SR)
+    # 複数のファイルは録った順に、3秒の無音をはさんでつなぐ。同じ箇所はあとの読みが選ばれる
+    gap = np.zeros(3 * SR, np.float32)
+    parts, offsets, pos = [], [], 0.0
+    for i, f in enumerate(a.input):
+        x = load(f, SR)
+        offsets.append(pos)
+        parts += ([gap] if i else []) + [x]
+        pos += len(x) / SR + (3.0 if i < len(a.input) - 1 else 0)
+    audio = np.concatenate(parts)
     dur = len(audio) / SR
     script = script_text(a.script) if a.script else ""
     prompt = re.sub(r"\s+", "", script)[:200] if script else ""
@@ -207,7 +216,11 @@ def main():
                        "why": c[4] if len(c) > 4 else "", "punct": c[5] if len(c) > 5 else ""})
         thr = None
     else:
-        words = transcribe(a.input, a.model, prompt, os.path.join(a.out, "words.json"))
+        words = []
+        for i, f in enumerate(a.input):
+            cache = os.path.join(a.out, "words.json" if i == 0 else f"words_{i + 1}.json")
+            for w in transcribe(f, a.model, prompt, cache):
+                words.append({"w": w["w"], "s": w["s"] + offsets[i], "e": w["e"] + offsets[i]})
         runs, thr = speech_runs(audio, SR, a.thr_db, a.min_gap)
         ph = [{"s": s, "e": e, "text": "", "keep": True, "why": "", "punct": ""} for s, e in runs]
         # 単語は「始まりの時刻」で句に割り当てる。始まりが無音の中なら次の句へ。
@@ -221,7 +234,7 @@ def main():
             tgt["text"] += w["w"]
         for p in ph:
             p["text"] = p["text"].strip()
-        skana = kana(script) if script else ""
+        skana = "".join(kana(l) for l in script.split("\n")) if script else ""  # 行ごとに仮名にしてつなぐ（字幕の行の位置とそろえる）
         for p in ph:
             k = kana(p["text"])
             if not k:
@@ -369,6 +382,8 @@ def main():
     # 音声をつなぎ直す
     pre, post, fade = 0.06, 0.18, 0.012
     out = [np.zeros(int(a.lead * SR), np.float32)]
+    t_out = a.lead
+    timeline = []
     for k, p in enumerate(kept):
         s = max(0.0, p["s"] - pre)
         e = min(dur, p["e"] + post)
@@ -378,12 +393,21 @@ def main():
             seg[:nf] *= np.linspace(0, 1, nf)
             seg[-nf:] *= np.linspace(1, 0, nf)
         out.append(seg)
+        m = re.search(r"台本 (\d+)〜(\d+) 字目", p["why"])
+        timeline.append({"src_s": p["s"], "src_e": p["e"], "out_s": round(t_out + (p["s"] - s), 3),
+                         "out_e": round(t_out + (p["e"] - s), 3), "text": p["text"], "punct": p["punct"],
+                         "script": [int(m.group(1)), int(m.group(2))] if m else None})
+        t_out += len(seg) / SR
         if p["punct"] == "終":
-            out.append(np.zeros(int(a.tail * SR), np.float32))
+            z = np.zeros(int(a.tail * SR), np.float32)
         else:
             pause = {"、": a.comma, "。": a.period, "題": a.after_title}.get(p["punct"], a.period)
-            out.append(np.zeros(int(max(0.05, pause - pre - post) * SR), np.float32))
+            z = np.zeros(int(max(0.05, pause - pre - post) * SR), np.float32)
+        out.append(z)
+        t_out += len(z) / SR
     y = np.concatenate(out)
+    json.dump({"inputs": a.input, "offsets": offsets, "script": a.script, "phrases": timeline},
+              open(os.path.join(a.out, "timeline.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     wav = os.path.join(a.out, "edited.wav")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "-",
                     "-c:a", "pcm_s24le", wav], input=y.tobytes(), check=True)
@@ -392,7 +416,7 @@ def main():
     diffs = []
     if script:
         said = kana("".join(p["text"] for p in kept))
-        want = kana(script)
+        want = "".join(kana(l) for l in script.split("\n"))
         sm = difflib.SequenceMatcher(None, want, said, autojunk=False)
         for op, i1, i2, j1, j2 in sm.get_opcodes():
             if op == "equal":
@@ -403,7 +427,7 @@ def main():
     # report.md
     n_drop = sum(1 for p in ph if not p["keep"])
     with open(os.path.join(a.out, "report.md"), "w", encoding="utf-8") as f:
-        f.write(f"# 自動編集の記録\n\n入力：{a.input}（{dur:.1f}秒）\n\n")
+        f.write(f"# 自動編集の記録\n\n入力：{"、".join(a.input)}（つないで {dur:.1f}秒）\n\n")
         f.write(f"- 句：{len(ph)}（残す {len(kept)}、捨てる {n_drop}）\n")
         f.write(f"- 声とみなした音量：{thr if thr is None else round(thr, 1)} dB　句の中とみなす途切れ：{a.min_gap}秒未満\n")
         f.write(f"- 「。」とみなした間：{a.long_gap if a.long_gap else '（phrases.tsv の指定）'}秒以上（録音から自動）\n")
