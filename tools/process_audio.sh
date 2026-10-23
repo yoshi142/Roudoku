@@ -2,6 +2,11 @@
 # 整音：ハイパス → ノイズ軽減 → 軽い圧縮 → 目標の音量まで上げる → リミッター
 # 間や息づかいを削るゲート処理は入れない。
 # 使い方: tools/process_audio.sh input.wav output_basename [noise_reduction_db(=4)] [target_lufs(=-16)]
+#   イコライザー：環境変数 EQ=none|B|C|D（既定 none）。例：EQ=C tools/process_audio.sh ...
+#     B：低音を抑える（スマートフォンを口に近づけたときの低音のふくらみ）
+#     C：B＋3kHz を少し上げて声の輪郭を出し、6〜8kHz のザラつき（HE-AAC の高域の作り足し、歯擦音）を抑える
+#     D：C を強めたもの
+#   2026-10-23 の雨ニモマケズの測定：声の部分で 60〜120Hz が 500〜1000Hz より +12.6 dB、6〜8kHz に +6 dB の山
 #   出力: output_basename.wav（48kHz/24bit モノラル、動画用）と output_basename.m4a（配布用 192kbps）
 #
 # 2026-10-23 の雨ニモマケズで決めたこと（docs/knowhow.md の「整音」）
@@ -12,12 +17,18 @@
 # - Pixel のレコーダーは録音時にノイズ抑制がかかっていて無音部分が静かなので、ノイズ軽減は弱く（4 dB）
 set -euo pipefail
 IN="$1"; OUT="$2"; NR="${3:-4}"; TARGET="${4:-16}"
+case "${EQ:-none}" in
+  B) EQF="highpass=f=90:poles=2,lowshelf=f=160:g=-5:w=0.7,equalizer=f=320:t=q:w=1.2:g=-2," ;;
+  C) EQF="highpass=f=90:poles=2,lowshelf=f=160:g=-5:w=0.7,equalizer=f=320:t=q:w=1.2:g=-2,equalizer=f=3000:t=q:w=1:g=2.5,equalizer=f=7000:t=q:w=1.8:g=-4,deesser=i=0.3," ;;
+  D) EQF="highpass=f=100:poles=2,lowshelf=f=180:g=-7:w=0.7,equalizer=f=320:t=q:w=1.2:g=-2.5,equalizer=f=3000:t=q:w=1:g=3,equalizer=f=7000:t=q:w=1.5:g=-7,deesser=i=0.4," ;;
+  *) EQF="" ;;
+esac
 TARGET="${TARGET#-}"
 mkdir -p "$(dirname "$OUT")"
 TMP="$(mktemp -d)"
 
 # 1) ハイパス 70Hz、ノイズ軽減、軽い圧縮（-26 dB から 2.5:1）
-ffmpeg -y -v error -i "$IN" -af "highpass=f=70:poles=2,afftdn=nr=${NR}:nf=-50:tn=1,acompressor=threshold=-26dB:ratio=2.5:attack=8:release=200:knee=4" \
+ffmpeg -y -v error -i "$IN" -af "${EQF}highpass=f=70:poles=2,afftdn=nr=${NR}:nf=-50:tn=1,acompressor=threshold=-26dB:ratio=2.5:attack=8:release=200:knee=4" \
   -ar 48000 -ac 1 -c:a pcm_s24le "$TMP/step1.wav"
 
 # 2) 音量を測り、目標との差を求める
