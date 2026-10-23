@@ -25,8 +25,10 @@ MEAS=$(ffmpeg -nostats -hide_banner -i "$TMP/step1.wav" -af ebur128 -f null - 2>
 GAIN=$(python3 -c "print(round(-${TARGET} - (${MEAS}) + 0.6, 2))")   # リミッターで少し下がる分を見込む
 echo "measured: I=${MEAS} LUFS → gain ${GAIN} dB"
 
-# 3) 上げてリミッター（-3 dBFS。トゥルーピークが -1 dBTP を超えないように余裕をとる）
-ffmpeg -y -v error -i "$TMP/step1.wav" -af "volume=${GAIN}dB,alimiter=limit=0.708:attack=2:release=50:level=false" \
+# 3) 上げてリミッター（-3 dBFS）。そのあと4倍に細かくしてもう一度リミッター（-2.5 dBFS）をかけ、サンプルの間の
+#    膨らみ（トゥルーピーク）も抑える。2026-10-23 の枕草子では、1段目だけだとサンプル値は -3.0 なのに
+#    トゥルーピークが -0.1 dBTP まで出た（HE-AAC の録音の高い帯域が原因とみられる）。2段目で -2.5 dBTP になった
+ffmpeg -y -v error -i "$TMP/step1.wav" -af "volume=${GAIN}dB,alimiter=limit=0.708:attack=2:release=50:level=false,aresample=192000,alimiter=limit=0.75:attack=1:release=50:level=false,aresample=48000" \
   -ar 48000 -c:a pcm_s24le "${OUT}.wav"
 ffmpeg -nostats -hide_banner -i "${OUT}.wav" -af ebur128=peak=true -f null - 2>&1 | grep -E "^\s+(I:|LRA:|Peak:)" | tail -3
 
