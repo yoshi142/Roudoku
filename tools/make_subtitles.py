@@ -14,6 +14,9 @@
   python3 tools/make_subtitles.py narration/trial-01/out/auto/timeline.json narration/trial-01/script.md \\
       --out narration/trial-01/out/subtitles
 出力: <out>.ass（動画に焼き込む用）、<out>.srt（YouTube に字幕ファイルとして上げる用）
+
+--gloss に「| 原文 | 現代語訳 |」の表を含む md（古典の台本の「字幕用の対訳」）を渡すと、原文の下に現代語訳を
+小さく、少し薄く出す（本人の指示、2026-10-23：古典の現代語訳は読まず、字幕で原文と並べて出す）。
 """
 import argparse, json, os, re, sys
 
@@ -38,6 +41,20 @@ def script_display(path):
     return head + body.replace("／", "")
 
 
+def norm(t):
+    return re.sub(r"[\s、。，．,.「」『』]", "", t)
+
+
+def load_gloss(path):
+    """md の表「| 原文 | 現代語訳 |」から {原文（句読点なし）: 訳} を作る。"""
+    g = {}
+    for line in open(path, encoding="utf-8"):
+        c = [x.strip() for x in line.strip().strip("|").split("|")]
+        if len(c) == 2 and c[0] not in ("原文", "") and not set(c[0]) <= set("-: "):
+            g[norm(c[0])] = c[1]
+    return g
+
+
 def ts_ass(t):
     t = max(0.0, t)
     h, r = divmod(t, 3600); m, s = divmod(r, 60)
@@ -58,6 +75,8 @@ def main():
     ap.add_argument("--fade_in", type=float, default=0.6)
     ap.add_argument("--fade_out", type=float, default=0.5)
     ap.add_argument("--lead", type=float, default=0.25, help="読み始めの何秒前から出すか")
+    ap.add_argument("--gloss", help="対訳の表を含む md。原文の下に現代語訳を出す")
+    ap.add_argument("--gloss_size", type=int, default=44, help="現代語訳の文字の大きさ（px）")
     ap.add_argument("--hold", type=float, default=0.7, help="読み終わってから何秒残すか（次の行の手前まで）")
     a = ap.parse_args()
 
@@ -126,12 +145,22 @@ Style: Reading,{font},{a.size},&H18DCE8EE,&H18DCE8EE,&H80141210,&HA0000000,0,0,0
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     fi, fo = int(a.fade_in * 1000), int(a.fade_out * 1000)
+    gloss = load_gloss(a.gloss) if a.gloss else {}
+    if gloss:
+        miss = [t for t, _, _ in out if norm(t) not in gloss]
+        if miss:
+            print("対訳の表にない行（訳なしで出す）:", miss)
+    sub = lambda t: gloss.get(norm(t), "")
     for text, s, e in out:
-        ass += f"Dialogue: 0,{ts_ass(s)},{ts_ass(e)},Reading,,0,0,0,,{{\\fad({fi},{fo})\\blur2.5}}{text}\n"
+        g = sub(text)
+        # 原文の下に小さな空き行をはさみ、訳を小さく少し薄く出す
+        g = f"\\N{{\\fs{a.gloss_size // 2}}}\\N{{\\fs{a.gloss_size}\\alpha&H40&}}{g}" if g else ""
+        ass += f"Dialogue: 0,{ts_ass(s)},{ts_ass(e)},Reading,,0,0,0,,{{\\fad({fi},{fo})\\blur2.5}}{text}{g}\n"
     open(a.out + ".ass", "w", encoding="utf-8").write(ass)
     with open(a.out + ".srt", "w", encoding="utf-8") as f:
         for i, (text, s, e) in enumerate(out, 1):
-            f.write(f"{i}\n{ts_srt(s)} --> {ts_srt(e)}\n{text}\n\n")
+            g = sub(text)
+            f.write(f"{i}\n{ts_srt(s)} --> {ts_srt(e)}\n{text}" + (f"\n{g}" if g else "") + "\n\n")
     print(f"字幕 {len(out)} 行 → {a.out}.ass / {a.out}.srt")
     for text, s, e in out:
         print(f"  {s:6.2f}-{e:6.2f}  {text}")

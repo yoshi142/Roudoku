@@ -19,7 +19,12 @@ python3 tools/auto_edit.py narration/trial-01/raw/trial-01_take01.wav --out narr
 # 3) 整音（圧縮 → -16 LUFS → リミッター）
 tools/process_audio.sh narration/trial-01/out/auto/edited.wav narration/trial-01/out/trial-01_mastered
 
-# 4) 静止画（朗読者名なし）と動画
+# 3b) 字幕（台本の文字。古典は --gloss で原文の下に現代語訳）と動画用の背景
+python3 tools/make_subtitles.py narration/trial-01/out/auto/timeline.json narration/trial-01/script.md --out narration/trial-01/out/subtitles [--gloss narration/trial-12-koten/script.md]
+python3 tools/make_video_bg.py --bg tools/backgrounds/<背景> --zoom 1.06 --title 作品名 --author 作者 --out narration/trial-01/out/video_bg.png
+python3 tools/make_reading_video.py --bg narration/trial-01/out/video_bg.png --voice narration/trial-01/out/trial-01_mastered.wav --ass narration/trial-01/out/subtitles.ass --music tools/music/<曲> --out narration/trial-01/out/trial-01.mp4
+
+# 4) 静止画（朗読者名なし）と動画（字幕なしの旧手順）
 python3 tools/make_thumbnail_v2.py --bg tools/backgrounds/<背景> --title 作品名 --author 作者 --out narration/trial-01/out/thumbnail_v2.png --preview
 tools/make_video.sh narration/trial-01/out/thumbnail_v2.png narration/trial-01/out/trial-01_mastered.wav narration/trial-01/out/trial-01.mp4
 ```
