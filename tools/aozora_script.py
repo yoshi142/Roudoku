@@ -3,7 +3,7 @@
 
 - ルビは「漢字（よみ）」に直す。読点・句点の位置に「／」、段落の切れ目に「／／」を入れる
 - --start/--end で、詩集などから一篇だけを切り出す（本文中の文字列で指定。end は含まない）
-- --intro/--outro の文は読まない（本人の指示、2026-10-23：冒頭の紹介とおわりの語りはやめた）。渡すと、説明文用の参考として台本の末尾に残る。--extra で補足（Markdown）を末尾に足す
+- --intro/--outro の文は読まない（本人の指示、2026-10-23：冒頭の紹介とおわりの語りはやめた）。渡すと、台本ではなく同じフォルダの description-notes.md（説明文の材料）に出す。--extra で補足（Markdown）を末尾に足す
 - 文字数（読み・記号・指示を除く）を数えて見出しに書く
 
 使い方:
@@ -103,7 +103,11 @@ def main():
     outro = open(a.outro, encoding='utf-8').read().strip() if a.outro else ''
     extra = open(a.extra, encoding='utf-8').read().strip() if a.extra else ''
     # 冒頭の紹介は読まない（本人の判断、2026-10-23）。--intro の文は説明文用に台本の末尾へ残す
-    intro_note = ''.join(f'\n## 参考：{h}（読まない。説明文に使える）\n\n{t}\n' for h, t in [('紹介', intro), ('おわりの文', outro)] if t)
+    # 紹介とおわりの文は台本に入れない（台本を表示したとき語りに見えるため。本人の指摘、2026-10-23）。説明文の材料として別ファイルに出す
+    intro_note = ''
+    notes = ''.join(f'## {h}（読まない。説明文に使う）\n\n{t}\n\n' for h, t in [('紹介', intro), ('おわりの文', outro)] if t)
+    if notes:
+        open(os.path.join(os.path.dirname(os.path.abspath(a.out)), 'description-notes.md'), 'w', encoding='utf-8').write(notes)
     n_body, n_total = count(body), count(body) + count(a.title) + count(a.author)
     rate = 250 if a.poem else 300
     est = n_total / rate
