@@ -41,7 +41,7 @@ def main():
     ap.add_argument("--duck_db", type=float, default=4.0, help="声が出ているあいだ、音楽をさらに何 dB 下げるか")
     ap.add_argument("--music_start", type=float, default=0.0, help="曲の何秒目から使うか")
     ap.add_argument("--ambient", help="環境音（雨、川、虫の声など）。音楽と重ねても、単独でもよい")
-    ap.add_argument("--ambient_lu", type=float, default=20.0, help="環境音を声より何 LU 小さくするか")
+    ap.add_argument("--ambient_lu", type=float, default=16.0, help="環境音を声より何 LU 小さくするか（本人の選択、2026-10-23：20 では小さすぎ、16 に）")
     ap.add_argument("--ambient_duck_db", type=float, default=2.0, help="声のあいだ環境音を何 dB 下げるか（大きく下げると不自然）")
     ap.add_argument("--ambient_start", type=float, default=0.0, help="環境音の何秒目から使うか（冒頭の無音を飛ばす）")
     ap.add_argument("--bg_changes", help="途中で替える背景。「画像@開始秒,画像@開始秒」（--bg は 0秒から）")

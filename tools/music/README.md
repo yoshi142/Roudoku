@@ -17,7 +17,7 @@ FORCE=1 tools/music/fetch_music.sh  # 全部取り直す
 
 | 作品 | 背景の音 | 手元の音源 | 理由 |
 |------|----------|------------|------|
-| 雨ニモマケズ（trial-01） | 雨 | Field_SummerRain-PlujaARiumors_AlbertMurillo.mp3（10秒目から） | 雨と風の中を生きる詩。背景の版画も広重「庄野 白雨」（夕立） |
+| 雨ニモマケズ（trial-01） | 雨 | Field_SummerRain-PlujaARiumors_AlbertMurillo.mp3（10秒目から、声より16 LU 小さく） | 雨と風の中を生きる詩。背景の版画も広重「庄野 白雨」（夕立） |
 | やまなし（trial-02） | 川の流れ | Field_River-Reykjaladur_AlbertMurillo.flac | 谷川の底の蟹の兄弟の話 |
 | 夢十夜（予定） | 夜の虫、静かなピアノ | Field_Crickets-Grillos_AlbertMurillo.wav、Bach_GoldbergAria_KimikoIshizaka.mp3 | 夜の夢の話。夜ごとに替えてもよい |
 | 蜘蛛の糸（trial-05） | 静かなピアノ | Bach_GoldbergAria_KimikoIshizaka.mp3 | 極楽の蓮池の朝の静けさ。水音を足す案もある |
