@@ -213,6 +213,8 @@ def main():
     ap.add_argument("--script", help="台本 md（読みの比較と、文字起こしの手がかりに使う）")
     ap.add_argument("--model", default="medium")
     ap.add_argument("--comma", type=float, default=1.0, help="「、」の間（秒）。2026-10-23 に本人の指示で 0.6 から変更")
+    ap.add_argument("--inner", type=float, default=0.4,
+                    help="台本の同じ行の中の息継ぎの間（秒）。詩の行のように行の中に句読点がない場合だけ（本人の指示、2026-10-23）")
     ap.add_argument("--period", type=float, default=2.4, help="「。」の間（秒）。2026-10-23 に本人の指示で 1.5 から変更")
     ap.add_argument("--after_title", type=float, default=2.0, help="題名と作者名のあとの間（秒）。--keep_head のときだけ使う")
     ap.add_argument("--keep_head", action="store_true",
@@ -487,6 +489,25 @@ def main():
         if p["punct"] == "終":
             p["punct"] = "。"  # ファイルの最後の句でも、仕上げの途中なら「。」の間
     kept[-1]["punct"] = "終"
+    # 台本の同じ行の中の息継ぎ（例：詩の「一日に／玄米四合と」）は「、」より短い間にする。
+    # 行の中に句読点がある台本（散文）では、これまでどおり「、」「。」で扱う
+    if script and not a.phrases:
+        slines = script.split("\n")
+        lstarts, pos = [], 0
+        for l in slines:
+            lstarts.append(pos)
+            pos += len(kana(l))
+        def line_of(x):
+            return max(i for i, st in enumerate(lstarts) if st <= x)
+        def span(p):
+            m = re.search(r"台本 (\d+)〜(\d+) 字目", p["why"])
+            return (int(m.group(1)), int(m.group(2))) if m else None
+        for A, B in zip(kept, kept[1:]):
+            sa, sb = span(A), span(B)
+            if sa and sb and A["punct"] == "、":  # 「。」の長い間は行の終わりのことが多い（文字起こしが語を次の句に付けると行の判定がずれる）
+                la, lb = line_of(sa[1] - 1), line_of(sb[0])
+                if la == lb and not re.search(r"[、。]", slines[la]):
+                    A["punct"] = "・"
 
     # phrases.tsv
     with open(os.path.join(a.out, "phrases.tsv"), "w", encoding="utf-8") as f:
@@ -517,7 +538,7 @@ def main():
         if p["punct"] == "終":
             z = np.zeros(int(a.tail * SR), np.float32)
         else:
-            pause = {"、": a.comma, "。": a.period, "題": a.after_title}.get(p["punct"], a.period)
+            pause = {"、": a.comma, "。": a.period, "・": a.inner, "題": a.after_title}.get(p["punct"], a.period)
             z = np.zeros(int(max(0.05, pause - pre - post) * SR), np.float32)
         out.append(z)
         t_out += len(z) / SR
@@ -547,7 +568,7 @@ def main():
         f.write(f"- 句：{len(ph)}（残す {len(kept)}、捨てる {n_drop}）\n")
         f.write(f"- 声とみなした音量：{thr if thr is None else round(thr, 1)} dB　句の中とみなす途切れ：{a.min_gap}秒未満\n")
         f.write(f"- 「。」とみなした間：{a.long_gap if a.long_gap else '（phrases.tsv の指定）'}秒以上（録音から自動）\n")
-        f.write(f"- そろえた間：「、」{a.comma}秒、「。」{a.period}秒、題名のあと {a.after_title}秒\n")
+        f.write(f"- そろえた間：行の中の息継ぎ（・）{a.inner}秒、「、」{a.comma}秒、「。」{a.period}秒、題名のあと {a.after_title}秒\n")
         f.write(f"- 仕上がり：{len(y) / SR:.1f}秒\n\n")
         f.write("## 残した読み\n\n")
         for p in kept:
