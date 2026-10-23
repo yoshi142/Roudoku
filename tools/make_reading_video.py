@@ -16,7 +16,7 @@
       --voice narration/trial-01/out/trial-01_mastered.wav --ass narration/trial-01/out/subtitles.ass \\
       --music tools/music/<曲> --out narration/trial-01/out/trial-01.mp4
 """
-import argparse, os, re, subprocess
+import argparse, json, os, re, subprocess
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 
@@ -48,6 +48,7 @@ def main():
     ap.add_argument("--end_fade", type=float, default=6.0, help="終わりに音楽・環境音を消すフェードの長さ（秒）。読み終わったあとも少し残してから、ゆっくり消す（本人の指示、2026-10-23）")
     ap.add_argument("--video_end_fade", type=float, default=3.0, help="終わりに映像を暗くするフェードの長さ（秒）")
     ap.add_argument("--bg_fade", type=float, default=1.5, help="背景の切り替えのクロスフェード（秒）")
+    ap.add_argument("--overlays", help="字幕の画像の一覧（tools/make_subtitles_block.py の overlays.json）。フェードで重ねる")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
@@ -87,6 +88,20 @@ def main():
         layers.append((a.music, a.music_lu, a.duck_db, a.music_start))
     if a.ambient:
         layers.append((a.ambient, a.ambient_lu, a.ambient_duck_db, a.ambient_start))
+    # 字幕の画像（まとまり単位・縦書き）：画像ごとに表示の時間だけ流し、透明度でフェードして重ねる
+    ov_chain, ov_out = "", "[0:v]"
+    if a.overlays:
+        items = json.load(open(a.overlays, encoding="utf-8"))
+        base = 2 + (1 if a.music else 0) + (1 if a.ambient else 0)
+        ov_inputs = []
+        for k, it in enumerate(items):
+            d = it["end"] - it["start"]
+            ov_inputs += ["-loop", "1", "-framerate", "30", "-t", f"{d:.3f}", "-i", it["png"]]
+            fi, fo = it.get("fade_in", 0.8), it.get("fade_out", 0.7)
+            ov_chain += (f"[{base + k}:v]format=rgba,fade=t=in:st=0:d={fi}:alpha=1,fade=t=out:st={max(0, d - fo):.3f}:d={fo}:alpha=1,"
+                         f"setpts=PTS-STARTPTS+{it['start']:.3f}/TB[o{k}];"
+                         f"{ov_out}[o{k}]overlay=0:0:eof_action=pass[v{k}];")
+            ov_out = f"[v{k}]"
     if layers:
         n = len(layers)
         parts = [f"[1:a]aformat=sample_rates=48000:channel_layouts=stereo,asplit={n + 1}[v]" + "".join(f"[sc{i}]" for i in range(n))]
@@ -110,7 +125,11 @@ def main():
             mixed.append(f"[d{i}]")
             print(f"{os.path.basename(f)}：{m_lufs} LUFS → {gain:+.1f} dB（声より {lu} LU 小さく、声のあいだ約 {duck} dB 下げる）")
         parts.append("[v]" + "".join(mixed) + f"amix=inputs={n + 1}:duration=first:normalize=0,alimiter=limit=0.84:level=false[a]")
-        cmd += ["-filter_complex", ";".join(parts) + f";[0:v]{vf}[vv]", "-map", "[vv]", "-map", "[a]"]
+        if a.overlays:
+            cmd += ov_inputs
+        cmd += ["-filter_complex", ";".join(parts) + ";" + ov_chain + f"{ov_out}{vf}[vv]", "-map", "[vv]", "-map", "[a]"]
+    elif a.overlays:
+        cmd += ov_inputs + ["-filter_complex", ov_chain + f"{ov_out}{vf}[vv]", "-map", "[vv]", "-map", "1:a"]
     else:
         cmd += ["-vf", vf, "-map", "0:v", "-map", "1:a"]
     cmd += ["-c:v", "libx264", "-preset", "medium", "-crf", "20", "-tune", "stillimage", "-r", "30",
