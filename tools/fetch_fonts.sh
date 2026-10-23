@@ -5,7 +5,7 @@
 set -euo pipefail
 DEST="${1:-$(dirname "$0")/fonts}"
 mkdir -p "$DEST"
-if [ -f "$DEST/ipaexm.ttf" ]; then echo "already: $DEST/ipaexm.ttf"; exit 0; fi
+if [ ! -f "$DEST/ipaexm.ttf" ]; then
 TMP="$(mktemp -d)"
 curl -sS -L --max-time 300 -o "$TMP/ipaex.zip" "https://moji.or.jp/wp-content/ipafont/IPAexfont/IPAexfont00401.zip"
 unzip -o -q "$TMP/ipaex.zip" -d "$TMP"
@@ -13,3 +13,11 @@ cp "$TMP"/IPAexfont*/ipaexm.ttf "$TMP"/IPAexfont*/ipaexg.ttf "$DEST/"
 cp "$TMP"/IPAexfont*/IPA_Font_License_Agreement_v1.0.txt "$DEST/" 2>/dev/null || true
 rm -rf "$TMP"
 echo "fonts: $DEST"
+fi
+
+# 太い明朝体（サムネイル v2 用）。SIL Open Font License 1.1（商用利用・同梱可）
+for f in "zenoldmincho/ZenOldMincho-Black.ttf" "shipporiminchob1/ShipporiMinchoB1-ExtraBold.ttf"; do
+  n=$(basename "$f")
+  test -s "$DEST/$n" || curl -sS -L --max-time 300 -o "$DEST/$n" "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/$f"
+done
+echo "fonts (v2): $DEST"

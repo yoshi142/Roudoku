@@ -4,6 +4,10 @@ AIが大部分を担う在宅の小さな事業の試行。本人の声で語る
 
 ## 構成
 
+- `CLAUDE.md` 作業する AI への指示（毎セッション自動で読み込まれる）
+- `docs/handoff.md` 引き継ぎと依頼（毎セッションの終わりに更新）
+- `docs/thumbnail-research.md` 朗読動画のサムネイル調査（2026-10-23）。データは `docs/research/data/`、試作は `docs/thumbnail/`
+
 - `narration/trial-NN/` 試行ごとのフォルダ
   - `candidates.md` 候補選びの記録（著作権の確認結果を含む）
   - `script.md` 台本
