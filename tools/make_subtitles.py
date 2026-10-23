@@ -77,7 +77,7 @@ def main():
     ap.add_argument("--lead", type=float, default=0.25, help="読み始めの何秒前から出すか")
     ap.add_argument("--gloss", help="対訳の表を含む md。原文の下に現代語訳を出す")
     ap.add_argument("--gloss_size", type=int, default=44, help="現代語訳の文字の大きさ（px）")
-    ap.add_argument("--hold", type=float, default=0.7, help="読み終わってから何秒残すか（次の行の手前まで）")
+    ap.add_argument("--hold", type=float, default=1.2, help="読み終わってから何秒残すか（次の行の手前まで）")
     a = ap.parse_args()
 
     tl = json.load(open(a.timeline, encoding="utf-8"))["phrases"]

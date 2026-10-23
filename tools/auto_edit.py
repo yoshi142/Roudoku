@@ -11,12 +11,12 @@
    あいだの句の条件があるので、題名と本文の1行目が同じ（雨ニモマケズ）でも題名は捨てない
 4. 句と句のあいだの間を「、」（短い）と「。」（長い）に分ける。台本に句読点がなくても、録音の間の長さと
    文字起こしの句読点から決める
-5. 「、」の間と「。」の間をそれぞれ同じ長さにそろえて、つなぎ直す（既定 「、」0.6秒、「。」1.5秒、題名のあと2秒）
+5. 「、」の間と「。」の間をそれぞれ同じ長さにそろえて、つなぎ直す（既定 「、」1.0秒、「。」2.4秒）
 6. 台本（--script）があれば、残した読みと台本の読みを仮名で比べ、違う箇所を「要確認」として書き出す
 
 使い方:
   python3 tools/auto_edit.py narration/trial-01/raw/trial-01_take01.wav --out narration/trial-01/out/auto \\
-      --script narration/trial-01/script.md [--model medium] [--comma 0.6] [--period 1.5]
+      --script narration/trial-01/script.md [--model medium] [--comma 1.0] [--period 2.4]
 出力（<out>/）:
   words.json      文字起こし（単語ごとの時刻）
   timeline.json   残した句が edited.wav の何秒にあるかと、台本の位置（字幕づくりに使う）
@@ -212,8 +212,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--script", help="台本 md（読みの比較と、文字起こしの手がかりに使う）")
     ap.add_argument("--model", default="medium")
-    ap.add_argument("--comma", type=float, default=0.6, help="「、」の間（秒）")
-    ap.add_argument("--period", type=float, default=1.5, help="「。」の間（秒）")
+    ap.add_argument("--comma", type=float, default=1.0, help="「、」の間（秒）。2026-10-23 に本人の指示で 0.6 から変更")
+    ap.add_argument("--period", type=float, default=2.4, help="「。」の間（秒）。2026-10-23 に本人の指示で 1.5 から変更")
     ap.add_argument("--after_title", type=float, default=2.0, help="題名と作者名のあとの間（秒）。--keep_head のときだけ使う")
     ap.add_argument("--keep_head", action="store_true",
                     help="題名と作者名の読み上げを残す。既定では外し、本文から始める（本人の指示、2026-10-23）")
