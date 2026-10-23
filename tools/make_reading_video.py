@@ -45,13 +45,15 @@ def main():
     ap.add_argument("--ambient_duck_db", type=float, default=2.0, help="声のあいだ環境音を何 dB 下げるか（大きく下げると不自然）")
     ap.add_argument("--ambient_start", type=float, default=0.0, help="環境音の何秒目から使うか（冒頭の無音を飛ばす）")
     ap.add_argument("--bg_changes", help="途中で替える背景。「画像@開始秒,画像@開始秒」（--bg は 0秒から）")
+    ap.add_argument("--end_fade", type=float, default=6.0, help="終わりに音楽・環境音を消すフェードの長さ（秒）。読み終わったあとも少し残してから、ゆっくり消す（本人の指示、2026-10-23）")
+    ap.add_argument("--video_end_fade", type=float, default=3.0, help="終わりに映像を暗くするフェードの長さ（秒）")
     ap.add_argument("--bg_fade", type=float, default=1.5, help="背景の切り替えのクロスフェード（秒）")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
     dur = duration(a.voice)
     v_lufs = loudness(a.voice)
-    vf = f"fade=t=in:st=0:d=1.2,fade=t=out:st={dur - 2.0:.2f}:d=2.0"
+    vf = f"fade=t=in:st=0:d=1.2,fade=t=out:st={dur - a.video_end_fade:.2f}:d={a.video_end_fade}"
     if a.ass:
         ass = os.path.relpath(a.ass).replace(":", r"\:")
         vf = f"subtitles={ass}:fontsdir={os.path.relpath(os.path.join(TOOLS, 'fonts'))}," + vf
@@ -95,7 +97,7 @@ def main():
             cmd += ["-stream_loop", "-1", "-ss", str(st), "-i", f]
             ratio = max(1.5, 10 ** (duck / 20) * 2)
             parts.append(f"[{i + 2}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:{dur:.3f},asetpts=PTS-STARTPTS,"
-                         f"volume={gain:.2f}dB,afade=t=in:st=0:d=3,afade=t=out:st={dur - 5:.2f}:d=5[l{i}]")
+                         f"volume={gain:.2f}dB,afade=t=in:st=0:d=3,afade=t=out:st={dur - a.end_fade:.2f}:d={a.end_fade}[l{i}]")
             parts.append(f"[l{i}][sc{i}]sidechaincompress=threshold=0.02:ratio={ratio:.1f}:attack=80:release=600:makeup=1[d{i}]")
             mixed.append(f"[d{i}]")
             print(f"{os.path.basename(f)}：{m_lufs} LUFS → {gain:+.1f} dB（声より {lu} LU 小さく、声のあいだ約 {duck} dB 下げる）")

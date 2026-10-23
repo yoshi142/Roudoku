@@ -223,7 +223,7 @@ def main():
     ap.add_argument("--min_gap", type=float, default=0.25, help="これより短い途切れは句の中とみなす")
     ap.add_argument("--thr_db", type=float, default=None, help="声とみなす音量（dB）。既定は自動")
     ap.add_argument("--lead", type=float, default=1.94, help="冒頭の無音（秒）。句の前の余白 0.06秒と合わせて、動画の開始から約2秒で朗読が始まる（本人の指示、2026-10-23）")
-    ap.add_argument("--tail", type=float, default=2.5, help="末尾の無音（秒）")
+    ap.add_argument("--tail", type=float, default=8.0, help="読み終わったあとの無音（秒）。余韻を残し、音楽を少し流してからゆっくり消す（本人の指示、2026-10-23。2.5 から変更）")
     ap.add_argument("--phrases", help="手で直した phrases.tsv を読み込み、判定をやり直さずに音声だけ作る")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)

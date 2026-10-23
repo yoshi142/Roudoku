@@ -78,9 +78,20 @@ def main():
     ap.add_argument("--gloss", help="対訳の表を含む md。原文の下に現代語訳を出す")
     ap.add_argument("--gloss_size", type=int, default=44, help="現代語訳の文字の大きさ（px）")
     ap.add_argument("--hold", type=float, default=1.2, help="読み終わってから何秒残すか（次の行の手前まで）")
+    ap.add_argument("--last_hold", type=float, default=3.5, help="最後の行を読み終わってから何秒残すか（余韻）")
     a = ap.parse_args()
 
     tl = json.load(open(a.timeline, encoding="utf-8"))["phrases"]
+    # 台本の「## 字幕の書き換え」の欄（「元の行 → 字幕に出す文字」）。読みは変えずに、字幕だけを変える
+    # 例：ひどりのときは涙を流し → ひどり（ひでり）のときは涙を流し（本人の指示、2026-10-23）
+    overrides = {}
+    st = open(a.script, encoding="utf-8").read()
+    mo = re.search(r"^##\s*字幕の書き換え.*?\n(.*?)(?=^##\s|\Z)", st, re.S | re.M)
+    if mo:
+        for line in mo.group(1).splitlines():
+            m2 = re.match(r"^\s*[-・]?\s*(.+?)\s*(?:→|->)\s*(.+?)\s*$", line)
+            if m2:
+                overrides[m2.group(1)] = m2.group(2)
     rlines = script_text(a.script).split("\n")
     dlines = script_display(a.script).split("\n")
     if len(rlines) != len(dlines):
@@ -124,10 +135,11 @@ def main():
     for k, (li, s, e) in enumerate(events):
         nxt = events[k + 1][1] if k + 1 < len(events) else e + 3
         start = s - a.lead
-        end = min(e + a.hold, nxt - a.lead - 0.05)
+        end = min(e + (a.last_hold if k + 1 == len(events) else a.hold), nxt - a.lead - 0.05)
         if out and start < out[-1][2] + 0.02:
             start = out[-1][2] + 0.02
-        out.append((dlines[li].strip(), start, max(end, start + 0.8)))
+        text = dlines[li].strip()
+        out.append((overrides.get(text, text), start, max(end, start + 0.8)))
 
     font = "Shippori Mincho Medium"
     ass = f"""[Script Info]
