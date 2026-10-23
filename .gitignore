@@ -11,7 +11,10 @@
 *.mkv
 *.webm
 narration/**/raw/
-narration/**/out/
+narration/**/out/*
+# サムネイル（v2）は小さいので記録に残す。音声・動画は上の拡張子で除外済み
+!narration/**/out/thumbnail_v2.png
+!narration/**/out/thumbnail_v2_1280.jpg
 # 一時ファイル
 *.tmp
 __pycache__/

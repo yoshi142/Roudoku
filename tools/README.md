@@ -46,4 +46,5 @@ tools/make_video.sh narration/trial-01/out/thumbnail.png narration/trial-01/out/
 
 - tools/make_thumbnail_v2.py　サムネイル v2（調査にもとづく型）。背景の出典は tools/backgrounds/README.md
 - tools/yt_research.py　YouTube の朗読動画の調査（検索、詳細、登録者数、同じ作品の上位・下位の一覧画像）。`pip install yt-dlp`
-- tools/aozora_script.py　青空文庫の XHTML から台本を作る
+- tools/aozora_script.py　青空文庫の XHTML から台本を作る（散文。詩は tools/extract_poems.py と tools/poem_scripts.py）
+- tools/analysis/　朗読動画の分析の再現用スクリプトと手順（README あり）
