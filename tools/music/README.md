@@ -22,7 +22,7 @@ FORCE=1 tools/music/fetch_music.sh  # 全部取り直す
 | 夢十夜（予定） | 夜の虫、静かなピアノ | Field_Crickets-Grillos_AlbertMurillo.wav、Bach_GoldbergAria_KimikoIshizaka.mp3 | 夜の夢の話。夜ごとに替えてもよい |
 | 蜘蛛の糸（trial-05） | 静かなピアノ | Bach_GoldbergAria_KimikoIshizaka.mp3 | 極楽の蓮池の朝の静けさ。水音を足す案もある |
 | 永訣の朝（trial-11） | 音なし、またはごく小さな雨 | Field_SummerRain（みぞれの代わり。合わなければ音なし） | 妹の死の朝の詩。音で飾らないほうがよい場合がある |
-| 古典の冒頭（trial-12） | 和楽器の静かな曲（本人の指示、2026-10-23：題材に合わせたヒーリングミュージックを入れる。季節で替えず、1本を通して同じ曲） | 枕草子：Shakuhachi_Iwashimizu_Iburozan.mp3（強弱をならしてから使う） | 当初は「暗唱用なので音なし」（学習の妨げになる研究、docs/growth/brand-summary.md）としていたが、本人の指示で音楽を入れる。声より 20 LU 小さく、声のあいだはさらに下げる |
+| 古典の冒頭（trial-12） | 和楽器の静かな曲（本人の指示、2026-10-23：題材に合わせたヒーリングミュージックを入れる。季節で替えず、1本を通して同じ曲） | 枕草子：Shakuhachi_Iwashimizu_Iburozan.mp3（強弱をならしてから使う）＋ Field_River-Reykjaladur_AlbertMurillo.flac（声より 22 LU 小さく、下げずに一定で流す） | 当初は「暗唱用なので音なし」（学習の妨げになる研究、docs/growth/brand-summary.md）としていたが、本人の指示で音楽を入れる。声より 20 LU 小さく、声のあいだはさらに下げる |
 | 宇宙・AI の回 | 音なし、または静かなピアノ | Bach_GoldbergAria | 解説の回。音は控えめに |
 
 ## 一覧（落としたもの）

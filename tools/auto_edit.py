@@ -216,6 +216,8 @@ def main():
     ap.add_argument("--inner", type=float, default=0.4,
                     help="台本の同じ行の中の息継ぎの間（秒）。詩の行のように行の中に句読点がない場合だけ（本人の指示、2026-10-23）")
     ap.add_argument("--period", type=float, default=2.4, help="「。」の間（秒）。2026-10-23 に本人の指示で 1.5 から変更")
+    ap.add_argument("--section", type=float, default=5.0,
+                    help="段の切れ目（枕草子の春・夏・秋・冬など）の間（秒）。phrases.tsv の6列目を「段」にした句のあとに入れる（本人の指示、2026-10-23）")
     ap.add_argument("--after_title", type=float, default=2.0, help="題名と作者名のあとの間（秒）。--keep_head のときだけ使う")
     ap.add_argument("--keep_head", action="store_true",
                     help="題名と作者名の読み上げを残す。既定では外し、本文から始める（本人の指示、2026-10-23）")
@@ -538,7 +540,7 @@ def main():
         if p["punct"] == "終":
             z = np.zeros(int(a.tail * SR), np.float32)
         else:
-            pause = {"、": a.comma, "。": a.period, "・": a.inner, "題": a.after_title}.get(p["punct"], a.period)
+            pause = {"、": a.comma, "。": a.period, "・": a.inner, "段": a.section, "題": a.after_title}.get(p["punct"], a.period)
             z = np.zeros(int(max(0.05, pause - pre - post) * SR), np.float32)
         out.append(z)
         t_out += len(z) / SR
