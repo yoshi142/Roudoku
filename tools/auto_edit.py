@@ -143,6 +143,37 @@ def script_hits(k, S, min_ratio=0.6):
     return out
 
 
+HALLUCINATIONS = ["ご視聴ありがとうございました", "視聴ありがとうございました", "ご視聴ありがとうございます",
+                  "チャンネル登録", "お願いします。", "おやすみなさい"]
+COUNTERS = "日合年月人本回時分秒歳個つ番夜段章度里尺寸貫円銭"
+
+
+def clean_words(words):
+    """文字起こしのよく知られた誤りを除く（2026-10-23 の録り直しで確認）。
+    - 録音の冒頭や無音に作られる「ご視聴ありがとうございました」など
+    - 実際にはない数字（「222ほめられもせず」）。後ろに助数詞（日、合 など）が続かない数字だけの単語を除く"""
+    text = "".join(w["w"] for w in words)
+    drop = set()
+    for h in HALLUCINATIONS:
+        for m in re.finditer(re.escape(h.strip("。")), text):
+            pos = 0
+            for j, w in enumerate(words):
+                if pos < m.end() and pos + len(w["w"]) > m.start():
+                    drop.add(j)
+                pos += len(w["w"])
+    out = []
+    for j, w in enumerate(words):
+        t = w["w"].strip()
+        if j in drop:
+            continue
+        if re.fullmatch(r"[0-9０-９]+", t):
+            nxt = words[j + 1]["w"].strip() if j + 1 < len(words) else ""
+            if not nxt or nxt[0] not in COUNTERS:
+                continue
+        out.append(w)
+    return out
+
+
 def transcribe(path, model, prompt, cache):
     if os.path.exists(cache):
         return json.load(open(cache, encoding="utf-8"))
@@ -196,8 +227,19 @@ def main():
     # 複数のファイルは録った順に、3秒の無音をはさんでつなぐ。同じ箇所はあとの読みが選ばれる
     gap = np.zeros(3 * SR, np.float32)
     parts, offsets, pos = [], [], 0.0
+    ref_lufs = None
     for i, f in enumerate(a.input):
         x = load(f, SR)
+        # 2本目以降は1本目と同じ音量にそろえる（録り直しの行だけ声の大きさが変わらないように）
+        r = subprocess.run(["ffmpeg", "-nostats", "-hide_banner", "-i", f, "-af", "ebur128", "-f", "null", "-"],
+                           capture_output=True, text=True).stderr
+        mm = re.findall(r"^\s+I:\s+(-?[\d.]+) LUFS", r, re.M)
+        lu = float(mm[-1]) if mm else None
+        if i == 0:
+            ref_lufs = lu
+        elif lu is not None and ref_lufs is not None:
+            x = x * (10 ** ((ref_lufs - lu) / 20))
+            print(f"{os.path.basename(f)}：{lu} LUFS → 1本目の {ref_lufs} LUFS にそろえた")
         offsets.append(pos)
         parts += ([gap] if i else []) + [x]
         pos += len(x) / SR + (3.0 if i < len(a.input) - 1 else 0)
@@ -219,8 +261,9 @@ def main():
         words = []
         for i, f in enumerate(a.input):
             cache = os.path.join(a.out, "words.json" if i == 0 else f"words_{i + 1}.json")
-            for w in transcribe(f, a.model, prompt, cache):
-                words.append({"w": w["w"], "s": w["s"] + offsets[i], "e": w["e"] + offsets[i]})
+            ws = clean_words(transcribe(f, a.model, prompt, cache))
+            for w in ws:
+                words.append({"w": w["w"], "s": w["s"] + offsets[i], "e": w["e"] + offsets[i], "file": i})
         runs, thr = speech_runs(audio, SR, a.thr_db, a.min_gap)
         ph = [{"s": s, "e": e, "text": "", "keep": True, "why": "", "punct": ""} for s, e in runs]
         # 単語は「始まりの時刻」で句に割り当てる。始まりが無音の中なら次の句へ。
@@ -247,6 +290,8 @@ def main():
             # 1句ずつ決める方式は、短い句の判定の誤りが後ろに連鎖したので使わない（2026-10-23）
             states = []  # (句の番号, 開始, 終了, 一致率, 累積値, 前の状態)
             for idx, k in enumerate(K):
+                if len(k) <= 1:  # 1字の句は照合に使わない（断片や物音のことが多い）
+                    continue
                 hits = script_hits(k, skana)
                 if not hits:
                     continue
@@ -255,7 +300,8 @@ def main():
                     # 0.75 以上の一致は同じ扱いにし、後の読みを少しだけ優先する（1字分より小さく）。
                     # 一致率の小さな差で選ぶと、文字起こしの漢字の当て方（四合／4号）で古い読みが選ばれた
                     q = 1.0 if r >= 0.75 else r
-                    gain = (en - st) * (q - 0.6) / 0.4 + 0.5 * idx / max(1, len(K))
+                    # あとの読みを、覆う字数に比例して少しだけ優先する（句の数ではなく字数で。細切れの句が得をしないように）
+                    gain = (en - st) * ((q - 0.6) / 0.4) * (1 + 0.02 * idx / max(1, len(K)))
                     best, bp = 0.0, None
                     for si, sv in enumerate(states):
                         if sv[2] <= st and sv[4] > best:
@@ -301,7 +347,7 @@ def main():
                 if idx == len(live) or idx in chosen:
                     if any(q["why"].startswith("読み直し") for q in run):
                         for q in run:
-                            if q["keep"]:
+                            if q["keep"] and not script_hits(kana(q["text"]), skana):
                                 q["keep"] = False
                                 q["why"] = "読み直し（前後の読み直しと一続き）"
                     run = []
@@ -333,7 +379,31 @@ def main():
             p["gap"] = (nxt[0]["s"] - p["e"]) if nxt else None
             if p["gap"] is not None:
                 gaps.append(p["gap"])
-        if a.long_gap is not None:
+        # 「。」の境は録音ファイルごとに決める（録った日や読み方で間の取り方が変わるため）
+        file_of = lambda t: max(i for i, o in enumerate(offsets) if t >= o - 0.01)
+        if len(a.input) > 1 and a.long_gap is None:
+            # 1本目の終わりの句の「後ろの間」はファイルのつなぎ目（3秒）を含むので数えない
+            per = {}
+            for fi in range(len(a.input)):
+                g = np.log(np.array([p["gap"] for p in kept if p["gap"] is not None and file_of(p["s"]) == fi] or [1.5]))
+                best, lg = -1, 1.5
+                if len(g) >= 4:
+                    for t in np.linspace(g.min(), g.max(), 60)[1:-1]:
+                        lo, hi = g[g < t], g[g >= t]
+                        if len(lo) and len(hi):
+                            v = len(lo) * len(hi) * (lo.mean() - hi.mean()) ** 2
+                            if v > best:
+                                best, lg = v, float(np.exp(t))
+                per[fi] = min(max(lg, 1.0), 3.0)
+            for p in kept:
+                last = p["text"].strip()[-1:] if p["text"].strip() else ""
+                if p["gap"] is None:
+                    p["punct"] = "終"
+                else:
+                    p["punct"] = "。" if (last == "。" or p["gap"] >= per[file_of(p["s"])]) else "、"
+            print("「。」の境（ファイルごと）:", {a.input[k]: round(v, 2) for k, v in per.items()})
+            long_gap = "ファイルごと"
+        elif a.long_gap is not None:
             long_gap = a.long_gap
         elif len(gaps) >= 4:
             g = np.log(np.array(gaps))
@@ -349,7 +419,7 @@ def main():
             long_gap = min(max(long_gap, 1.0), 3.0)
         else:
             long_gap = 1.5
-        for p in kept:
+        for p in ([] if long_gap == "ファイルごと" else kept):
             last = p["text"].strip()[-1:] if p["text"].strip() else ""
             if p["gap"] is None:
                 p["punct"] = "終"

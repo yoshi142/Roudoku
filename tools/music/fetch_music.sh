@@ -28,7 +28,7 @@ while IFS='|' read -r name url; do
     echo "skip (exists): $name"; continue
   fi
   echo "get: $name"
-  if curl -sS -L --fail --retry 2 --retry-delay 10 --max-time 900 -A "$UA" -o "$out.part" "$url"; then
+  if curl -sS -L --fail --retry 2 --retry-delay 10 --retry-max-time 120 --max-time 900 -A "$UA" -o "$out.part" "$url"; then
     mv -f "$out.part" "$out"
   else
     echo "  failed: $name ($url)" >&2
