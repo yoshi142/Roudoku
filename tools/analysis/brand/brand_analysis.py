@@ -98,6 +98,13 @@ print(sm[['title', 'channel', 'subs', 'views', 'minutes', 'age', 'known']].head(
 print('小さなチャンネル 肩書きあり 動画', len(sm), 'チャンネル', sm.channel_id.nunique(), ' 知名度ありを除く', (sm.known == 0).sum(), sm[sm.known == 0].channel_id.nunique())
 print(sm.groupby('channel').agg(n=('views', 'size'), subs=('subs', 'first'), med=('views', 'median')).sort_values('n', ascending=False).to_string())
 
+# 登録者をそろえない場合（肩書きのある動画の差がどこから来るか）
+for name, d in [('全体', v), ('全体・知名度なし', v[v.known == 0]), ('1万人未満・3年以内・知名度なし', v[(v.subs < 1e4) & (v.known == 0) & (v.recent == 1)])]:
+    print('登録者をそろえない', name, fit(d, ['cue'], base='lv ~ la + C(work) + C(dur)'), '中央値', d.groupby('cue').views.median().to_dict(), '登録者中央値', d.groupby('cue').subs.median().to_dict())
+d = v[(v.subs < 1e4) & (v.known == 0) & (v.recent == 1)]
+for col in ['t_voice', 'c_voice']:
+    print(col, d.groupby(col).agg(n=('views', 'size'), med=('views', 'median'), p1k=('views', lambda x: (x >= 1000).mean())).round(3).to_dict())
+
 # 題名の肩書き（1万人未満・3年以内）：チャンネルを1つずつ抜いたときの倍率の幅
 d = SAMPLES['登録者1万人未満・投稿3年以内']; d = d[d.known == 0]
 jk = []
@@ -182,7 +189,7 @@ for name, df in [('全体', vv), ('登録者1万人未満', vv[vv.subs < 10000])
 # ---- 問3 用途を出した題名：長い版に限る ----
 print('==== 問3 用途の言葉（題名）')
 res3 = []
-for name, df in [('全体', v), ('30分以上', v[v.minutes >= 30]), ('60分以上', v[v.minutes >= 60]), ('60分以上・登録者10万人未満', v[(v.minutes >= 60) & (v.subs < 100000)]),
+for name, df in [('全体', v), ('登録者1万人未満', v[v.subs < 10000]), ('30分以上', v[v.minutes >= 30]), ('60分以上', v[v.minutes >= 60]), ('60分以上・登録者10万人未満', v[(v.minutes >= 60) & (v.subs < 100000)]),
                  ('60分以上・登録者1万人未満', v[(v.minutes >= 60) & (v.subs < 10000)]), ('60分以上・投稿3年以内', v[(v.minutes >= 60) & (v.recent == 1)]),
                  ('30分以上・複数作品', v[(v.minutes >= 30) & (v.coll == 1)]), ('30分未満', v[v.minutes < 30])]:
     for terms in (['use'], ['sleep'], ['workw']):
@@ -198,3 +205,15 @@ d = v[v.minutes >= 60]
 print(d.groupby('use').agg(n=('views', 'size'), ch=('channel_id', 'nunique'), med=('views', 'median'), subs_med=('subs', 'median'), min_med=('minutes', 'median')).to_string())
 # 用途の言葉と肩書きの重なり（題名）
 print(pd.crosstab(v.use, v.cue, margins=True))
+
+# 用途で探す場面（「朗読 睡眠」「朗読 寝落ち」「朗読 作業用」の検索結果。thumbnail-research の取得物）
+s0 = pd.read_csv(D + 'youtube_search_results_2026-10-23.csv')
+U = s0.search_queries.fillna('').str.contains('睡眠|寝落ち|作業用')
+du = s0[U].copy()
+subs_by_name = dict(zip(ch.name, ch.subs))
+du['subs'] = du.channel.map(subs_by_name)
+du['auth'] = du.channel.str.contains(VOICE + '|' + ORG) | du.title.str.contains(VOICE + '|' + ORG)
+print('用途の検索', len(du), 'チャンネル', du.channel.nunique(), '再生中央値', du.views.median(), '長さ中央値', du.minutes.median(),
+      '題名に用途', du.title.str.contains(SLEEP + '|' + WORK).mean().round(2), '肩書きあり', du.auth.mean().round(2),
+      '登録者が分かるチャンネル', du.drop_duplicates('channel').subs.notna().sum(), '中央値', du.drop_duplicates('channel').subs.median())
+print(du.groupby('channel').views.agg(['size', 'median']).sort_values('size', ascending=False).head(12))
