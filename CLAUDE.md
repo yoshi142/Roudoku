@@ -44,6 +44,8 @@
 
 - docs/handoff.md　引き継ぎと依頼（毎セッションの終わりに更新する）
 - docs/analysis/report.md　伸びている朗読動画の分析（2026-10-23）。骨子は docs/analysis/plan.md。再現手順は tools/analysis/README.md
+- docs/growth/summary.md　チャンネルを伸ばすための方針と、クリエイターチーム・エージェント編成の判断（2026-10-23、コンサルチーム4名の報告のまとめ）
+- .claude/agents/　確認役のサブエージェント（reading-checker：読みの確認、prepublish-checker：公開前の確認）。作品ごとに台本を作ったら読みの確認、公開の前に公開前の確認を呼ぶ
 - docs/thumbnail-research.md　サムネイル調査（2026-10-23）
 - docs/branding.md　ブランド方針　／　docs/equipment.md　機材と有料ツールの候補
 - narration/catalog.md　朗読の題材一覧　／　narration/trial-*/　各回の台本・文面・記録
