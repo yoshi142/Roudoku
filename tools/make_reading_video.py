@@ -8,6 +8,9 @@
 - 映像は冒頭 1.2秒を黒からフェードイン、終わり 2秒でフェードアウト
 - 仕上げにリミッター（-1.5 dBFS）。音量は声の整音（-16 LUFS 前後）とほぼ同じになる
 
+- --bg_changes で、途中から背景を替えられる（例：枕草子の春・夏・秋・冬）。「画像@秒」をカンマで並べる。
+  切り替えは --bg_fade 秒（既定 1.5）のクロスフェード。--bg は最初の背景として使う
+
 使い方:
   python3 tools/make_reading_video.py --bg narration/trial-01/out/video_bg.png \\
       --voice narration/trial-01/out/trial-01_mastered.wav --ass narration/trial-01/out/subtitles.ass \\
@@ -41,6 +44,8 @@ def main():
     ap.add_argument("--ambient_lu", type=float, default=20.0, help="環境音を声より何 LU 小さくするか")
     ap.add_argument("--ambient_duck_db", type=float, default=2.0, help="声のあいだ環境音を何 dB 下げるか（大きく下げると不自然）")
     ap.add_argument("--ambient_start", type=float, default=0.0, help="環境音の何秒目から使うか（冒頭の無音を飛ばす）")
+    ap.add_argument("--bg_changes", help="途中で替える背景。「画像@開始秒,画像@開始秒」（--bg は 0秒から）")
+    ap.add_argument("--bg_fade", type=float, default=1.5, help="背景の切り替えのクロスフェード（秒）")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
@@ -52,7 +57,29 @@ def main():
         vf = f"subtitles={ass}:fontsdir={os.path.relpath(os.path.join(TOOLS, 'fonts'))}," + vf
     vf += ",format=yuv420p"
 
-    cmd = ["ffmpeg", "-y", "-v", "error", "-loop", "1", "-framerate", "30", "-t", f"{dur:.3f}", "-i", a.bg, "-i", a.voice]
+    if a.bg_changes:
+        # 背景ごとに静止画を流し、xfade でつないだ背景の動画を先に作る
+        segs = [(a.bg, 0.0)] + [(x.rsplit("@", 1)[0], float(x.rsplit("@", 1)[1])) for x in a.bg_changes.split(",")]
+        F = a.bg_fade
+        offs = [st - F / 2 for _, st in segs[1:]]
+        bcmd, chain = ["ffmpeg", "-y", "-v", "error"], []
+        for i, (img, st) in enumerate(segs):
+            start = 0.0 if i == 0 else offs[i - 1]
+            end = (offs[i] + F) if i < len(offs) else dur
+            bcmd += ["-loop", "1", "-framerate", "30", "-t", f"{end - start:.3f}", "-i", img]
+        prev = "[0:v]"
+        for i, o in enumerate(offs):
+            out = f"[x{i}]"
+            chain.append(f"{prev}[{i + 1}:v]xfade=transition=fade:duration={F}:offset={o:.3f}{out}")
+            prev = out
+        bg_video = os.path.splitext(a.out)[0] + "_bg.mp4"
+        bcmd += ["-filter_complex", ";".join(chain), "-map", prev, "-c:v", "libx264", "-preset", "medium", "-crf", "16",
+                 "-pix_fmt", "yuv420p", "-r", "30", "-t", f"{dur:.3f}", bg_video]
+        subprocess.run(bcmd, check=True)
+        print("背景の切り替え:", ", ".join(f"{os.path.basename(img)}@{st:g}秒" for img, st in segs))
+        cmd = ["ffmpeg", "-y", "-v", "error", "-i", bg_video, "-i", a.voice]
+    else:
+        cmd = ["ffmpeg", "-y", "-v", "error", "-loop", "1", "-framerate", "30", "-t", f"{dur:.3f}", "-i", a.bg, "-i", a.voice]
     layers = []  # (ファイル, 声より何LU小さく, ダッキング dB, 開始秒)
     if a.music:
         layers.append((a.music, a.music_lu, a.duck_db, a.music_start))

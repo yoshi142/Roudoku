@@ -22,7 +22,7 @@ FORCE=1 tools/music/fetch_music.sh  # 全部取り直す
 | 夢十夜（予定） | 夜の虫、静かなピアノ | Field_Crickets-Grillos_AlbertMurillo.wav、Bach_GoldbergAria_KimikoIshizaka.mp3 | 夜の夢の話。夜ごとに替えてもよい |
 | 蜘蛛の糸（trial-05） | 静かなピアノ | Bach_GoldbergAria_KimikoIshizaka.mp3 | 極楽の蓮池の朝の静けさ。水音を足す案もある |
 | 永訣の朝（trial-11） | 音なし、またはごく小さな雨 | Field_SummerRain（みぞれの代わり。合わなければ音なし） | 妹の死の朝の詩。音で飾らないほうがよい場合がある |
-| 古典の冒頭（trial-12） | 音なし | ― | 暗唱用。背景音楽は学習の妨げになる研究がある（docs/growth/brand-summary.md） |
+| 古典の冒頭（trial-12） | 和楽器の静かな曲（本人の指示、2026-10-23：題材に合わせたヒーリングミュージックを入れる。季節で替えず、1本を通して同じ曲） | 枕草子：Shakuhachi_Iwashimizu_Iburozan.mp3（強弱をならしてから使う） | 当初は「暗唱用なので音なし」（学習の妨げになる研究、docs/growth/brand-summary.md）としていたが、本人の指示で音楽を入れる。声より 20 LU 小さく、声のあいだはさらに下げる |
 | 宇宙・AI の回 | 音なし、または静かなピアノ | Bach_GoldbergAria | 解説の回。音は控えめに |
 
 ## 一覧（落としたもの）
@@ -154,3 +154,12 @@ Murillo の夕立と川は、Commons の雨と川が落とせなかったため�
 - Content ID は録音の音そのものを照合する。作曲が PD でも、他人が同じ曲の自分の録音を登録していると、似た演奏に誤って当たることがある。また、PD／CC0 の録音そのものを他人が自分のものとして登録してしまう例もある
 - 申し立てを受けたら、YouTube Studio の「著作権侵害の申し立て」から異議を出す。根拠として、この README のファイルページの URL とライセンスを示す
 - 収益化前に、限定公開の動画で一度アップロードして申し立てが出ないか確かめるとよい
+
+### 尺八「岩清水」（Iburozan、2010年）　2026-10-23 追加（Part 3）
+
+- ファイル：Shakuhachi_Iwashimizu_Iburozan.mp3（6:03、MP3、44.1kHz ステレオ）。取得元：https://archive.org/details/Iwashimizu （直接の URL：https://archive.org/download/Iwashimizu/Iwashimizu_Nov2010.mp3）
+- 曲：都山流尺八の本曲「岩清水」。作曲は都山流の祖、中尾都山（1876〜1956年）とみられる。日本では作曲者の没後50年（2006年末）で保護期間が終わっている（2018年の70年への延長は、すでに切れたものには及ばない）。米国での扱いは確かめていない
+- 録音：Iburozan（Robin Eve）が 2010年11月23日に演奏。Internet Archive の項目のライセンス欄は CC0 1.0
+- 強弱の幅が大きい（LRA 17.1 LU、ひと吹きごとに強く入る）。声の後ろに置く前に、highpass 120Hz → acompressor（-30 dB から 4:1）→ dynaudnorm で強弱をならす（LRA 10.1 LU になった）
+- 選んだ理由：枕草子（平安の宮廷の随筆）には和楽器が合う。箏の録音も探したが、権利がはっきりしたものが見つからなかった（沢井忠夫「風の歌」は演奏が CC BY だが作曲者の権利が残る。宮城道雄の盤は録音の権利が残る。Wikimedia Commons はこの環境から取得できない）
+- AI は音を聞いて確かめることはできない。曲の雰囲気が合うかは本人が聞いて判断する
