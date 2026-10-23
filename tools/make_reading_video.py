@@ -96,13 +96,22 @@ def main():
             gain = (v_lufs - lu) - m_lufs
             cmd += ["-stream_loop", "-1", "-ss", str(st), "-i", f]
             ratio = max(1.5, 10 ** (duck / 20) * 2)
+            # 音楽・環境音だけに先にリミッターをかけ、鋭い瞬間の音（雨粒など）を抑える。上限は「声の平均 − lu + 12 dB」。
+            # 雨の録音は平均より約37 dB 大きな瞬間があり、大きくすると仕上げのリミッターが声ごと下げていた（2026-10-23）
+            layer_peak = min(0.9, 10 ** ((v_lufs - lu + 12) / 20))
             parts.append(f"[{i + 2}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:{dur:.3f},asetpts=PTS-STARTPTS,"
+<<<<<<< Updated upstream
                          f"volume={gain:.2f}dB,afade=t=in:st=0:d=3,afade=t=out:st={dur - a.end_fade:.2f}:d={a.end_fade}[l{i}]")
             if duck > 0:
                 parts.append(f"[l{i}][sc{i}]sidechaincompress=threshold=0.02:ratio={ratio:.1f}:attack=80:release=600:makeup=1[d{i}]")
             else:
                 # 下げない指定（0 dB）：声に合わせて動かさず、一定の音量で流し続ける（無音部分でノイズが途切れる感じを隠す）
                 parts.append(f"[sc{i}]anullsink;[l{i}]anull[d{i}]")
+=======
+                         f"volume={gain:.2f}dB,alimiter=limit={layer_peak:.4f}:attack=1:release=80:level=false,"
+                         f"afade=t=in:st=0:d=3,afade=t=out:st={dur - a.end_fade:.2f}:d={a.end_fade}[l{i}]")
+            parts.append(f"[l{i}][sc{i}]sidechaincompress=threshold=0.02:ratio={ratio:.1f}:attack=80:release=600:makeup=1[d{i}]")
+>>>>>>> Stashed changes
             mixed.append(f"[d{i}]")
             print(f"{os.path.basename(f)}：{m_lufs} LUFS → {gain:+.1f} dB（声より {lu} LU 小さく、声のあいだ約 {duck} dB 下げる）")
         parts.append("[v]" + "".join(mixed) + f"amix=inputs={n + 1}:duration=first:normalize=0,alimiter=limit=0.84:level=false[a]")
