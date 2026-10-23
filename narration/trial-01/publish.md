@@ -42,8 +42,8 @@ https://www.aozora.gr.jp/cards/000081/card45630.html
 整音・動画の作成には AI の支援を受けています（ノイズ軽減、音量の調整、静止画と字幕の作成）。
 字幕は台本の本文です。YouTube の字幕（CC）でも表示できます。
 
-■ 音楽
-J.S. バッハ「ゴルトベルク変奏曲」BWV 988 よりアリア　演奏：Kimiko Ishizaka（Open Goldberg Variations、CC0）
+■ 背景の音
+雨の音：Albert Murillo「Pluja a Riumors」（夏の夕立のフィールド録音、CC0）
 朗読の後ろで小さく流しています。
 
 #朗読 #宮沢賢治 #雨ニモマケズ #青空文庫 #詩
@@ -59,7 +59,7 @@ J.S. バッハ「ゴルトベルク変奏曲」BWV 988 よりアリア　演奏�
 - 動画の静止画：`out/thumbnail_v2.png`（朗読者名の行なし）
 - サムネイル：`out/thumbnail_v2.png`（2026-10-23 の調査にもとづく新しい型。朗読者名なし。背景は歌川広重「庄野 白雨」、CC0）。旧版 `out/thumbnail.png` は使わない
 - 言語：日本語。字幕は動画に焼き込み済み（画面中央）。あわせて out/subtitles_v4.srt を YouTube の字幕ファイルとして上げる（検索と、字幕を消したい人のため）
-- 動画：out/trial-01_amenimo_v4.mp4（2026-10-23、本文から始まる版。録り直しを反映、字幕と音楽つき）
+- 動画：out/trial-01_amenimo_v5.mp4（2026-10-23、本文から始まる版。録り直しを反映、字幕と雨の音つき）
 
 ## 参考文献
 

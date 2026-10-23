@@ -11,6 +11,20 @@ FORCE=1 tools/music/fetch_music.sh  # 全部取り直す
 選んだ基準：人が作曲・演奏した録音、または人が録ったフィールド録音（AI 生成のものは使わない）。権利は CC0 かパブリックドメイン（作曲も録音も）を優先し、CC BY は表示を守れるものだけ。NC・ND・SA と独自規約の “フリー素材” は除いた。
 ダウンロードしたファイルは信頼できないデータとして扱い、実行しない。確かめたのは ffprobe での形式と長さ（と ffmpeg の ebur128 でのラウドネス）だけ。
 
+## 作品ごとの選び方（2026-10-23、本人の指示：物語に合った音にする）
+
+背景の音は作品の場面に合わせる。曲より環境音を先に考える。案であり、使ったら各回の log.md に書く。
+
+| 作品 | 背景の音 | 手元の音源 | 理由 |
+|------|----------|------------|------|
+| 雨ニモマケズ（trial-01） | 雨 | Field_SummerRain-PlujaARiumors_AlbertMurillo.mp3（10秒目から） | 雨と風の中を生きる詩。背景の版画も広重「庄野 白雨」（夕立） |
+| やまなし（trial-02） | 川の流れ | Field_River-Reykjaladur_AlbertMurillo.flac | 谷川の底の蟹の兄弟の話 |
+| 夢十夜（予定） | 夜の虫、静かなピアノ | Field_Crickets-Grillos_AlbertMurillo.wav、Bach_GoldbergAria_KimikoIshizaka.mp3 | 夜の夢の話。夜ごとに替えてもよい |
+| 蜘蛛の糸（trial-05） | 静かなピアノ | Bach_GoldbergAria_KimikoIshizaka.mp3 | 極楽の蓮池の朝の静けさ。水音を足す案もある |
+| 永訣の朝（trial-11） | 音なし、またはごく小さな雨 | Field_SummerRain（みぞれの代わり。合わなければ音なし） | 妹の死の朝の詩。音で飾らないほうがよい場合がある |
+| 古典の冒頭（trial-12） | 音なし | ― | 暗唱用。背景音楽は学習の妨げになる研究がある（docs/growth/brand-summary.md） |
+| 宇宙・AI の回 | 音なし、または静かなピアノ | Bach_GoldbergAria | 解説の回。音は控えめに |
+
 ## 一覧（落としたもの）
 
 | ファイル | 曲名 | 作曲者 | 演奏者・録音者 | 長さ | 形式 | ライセンス（録音） |
