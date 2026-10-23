@@ -84,6 +84,8 @@ def main():
     ap.add_argument('--bg', default=None, help='背景画像（なければ単色）')
     ap.add_argument('--focus', default='0.5,0.5', help='背景の切り抜きの中心（横,縦 0〜1）')
     ap.add_argument('--zoom', type=float, default=1.0, help='背景の拡大率')
+    ap.add_argument('--bg_bright', type=float, default=0.62, help='暗いテーマで背景をどこまで暗くするか（1で元のまま）。分析では暗すぎる画面は再生が少なかった')
+    ap.add_argument('--bg_color', type=float, default=1.0, help='背景の色の濃さ（1で元のまま、1.3で鮮やかに）')
     ap.add_argument('--veil', type=float, default=None, help='文字側の覆いの濃さ 0〜1（既定 dark 0.85 / light 0.92）')
     ap.add_argument('--title', required=True, help='「｜」で改行')
     ap.add_argument('--author', default='')
@@ -95,7 +97,7 @@ def main():
     ap.add_argument('--text_w', type=float, default=0.62, help='題名に使う横幅の割合')
     ap.add_argument('--accent', default='#c8372d', help='差し色（朱色）')
     ap.add_argument('--thread', action='store_true', help='上から垂れる細い糸を1本描く（蜘蛛の糸用）')
-    ap.add_argument('--bg_color', default=None)
+    ap.add_argument('--fill', default=None, help='背景画像がないときの地の色（例: #34486b）')
     ap.add_argument('--out', required=True)
     ap.add_argument('--preview', action='store_true', help='スマートフォンの表示幅での見え方も書き出す')
     a = ap.parse_args()
@@ -105,8 +107,10 @@ def main():
     if a.bg:
         fx, fy = (float(v) for v in a.focus.split(','))
         img = cover(Image.open(a.bg).convert('RGB'), W, H, fx, fy, a.zoom)
+        if a.bg_color != 1.0:
+            img = ImageEnhance.Color(img).enhance(a.bg_color)
         if dark:
-            img = ImageEnhance.Brightness(img).enhance(0.62)
+            img = ImageEnhance.Brightness(img).enhance(a.bg_bright)
         img = img.convert('RGBA')
         # 文字側を暗く（明るく）するグラデーション
         g = Image.new('L', (W, 1))
@@ -119,7 +123,7 @@ def main():
         veil.putalpha(g.point(lambda v: int(v * k)))
         img.alpha_composite(veil)
     else:
-        img = Image.new('RGBA', (W, H), a.bg_color or ('#111316' if dark else '#f4efe4'))
+        img = Image.new('RGBA', (W, H), a.fill or ('#111316' if dark else '#f4efe4'))
 
     d = ImageDraw.Draw(img)
     fg = (250, 248, 242, 255) if dark else (22, 20, 18, 255)
