@@ -290,33 +290,48 @@ def main():
             # 台本あり：「録音の時間順に並べたとき、台本の位置も前へ戻らない」句の組み合わせのうち、
             # 台本を最も多く覆うものを選ぶ（動的計画法）。同じ箇所を覆う読みが複数あれば後の読みを選ぶ。
             # 1句ずつ決める方式は、短い句の判定の誤りが後ろに連鎖したので使わない（2026-10-23）
-            states = []  # (句の番号, 開始, 終了, 一致率, 累積値, 前の状態)
-            for idx, k in enumerate(K):
-                if len(k) <= 1:  # 1字の句は照合に使わない（断片や物音のことが多い）
-                    continue
-                hits = script_hits(k, skana)
-                if not hits:
-                    continue
-                new = []
-                for st, en, r in hits:
-                    # 0.75 以上の一致は同じ扱いにし、後の読みを少しだけ優先する（1字分より小さく）。
-                    # 一致率の小さな差で選ぶと、文字起こしの漢字の当て方（四合／4号）で古い読みが選ばれた
-                    q = 1.0 if r >= 0.75 else r
-                    # あとの読みを、覆う字数に比例して少しだけ優先する（句の数ではなく字数で。細切れの句が得をしないように）
-                    gain = (en - st) * ((q - 0.6) / 0.4) * (1 + 0.02 * idx / max(1, len(K)))
-                    best, bp = 0.0, None
-                    for si, sv in enumerate(states):
-                        if sv[2] <= st and sv[4] > best:
-                            best, bp = sv[4], si
-                    new.append((idx, st, en, r, best + gain, bp))
-                states.extend(new)
-            chosen = {}
-            if states:
-                si = max(range(len(states)), key=lambda i: states[i][4])
-                while si is not None:
-                    idx, st, en, r, v, bp = states[si]
-                    chosen[idx] = (st, en, r)
-                    si = bp
+            def dp_choose(idxs):
+                states = []  # (句の番号, 開始, 終了, 一致率, 累積値, 前の状態)
+                for idx in idxs:
+                    k = K[idx]
+                    if len(k) <= 1:  # 1字の句は照合に使わない（断片や物音のことが多い）
+                        continue
+                    hits = script_hits(k, skana)
+                    new = []
+                    for st, en, r in hits:
+                        # 0.75 以上の一致は同じ扱いにする（文字起こしの漢字の当て方「四合／4号」で古い読みが選ばれたため）。
+                        # あとの読みを、覆う字数に比例して少しだけ優先する（句の数ではなく字数で。細切れの句が得をしないように）
+                        q = 1.0 if r >= 0.75 else r
+                        gain = (en - st) * ((q - 0.6) / 0.4) * (1 + 0.02 * idx / max(1, len(K)))
+                        best, bp = 0.0, None
+                        for si, sv in enumerate(states):
+                            if sv[2] <= st and sv[4] > best:
+                                best, bp = sv[4], si
+                        new.append((idx, st, en, r, best + gain, bp))
+                    states.extend(new)
+                ch = {}
+                if states:
+                    si = max(range(len(states)), key=lambda i: states[i][4])
+                    while si is not None:
+                        idx, st, en, r, v, bp = states[si]
+                        ch[idx] = (st, en, r)
+                        si = bp
+                return ch
+
+            # 録音ファイルごとに台本の位置を決め、同じ箇所はあとのファイルの読みを優先する。
+            # 録り直しは台本のどこからでもよく、どの順に録ってもよい（2026-10-23、冒頭だけの録り直しで対応）
+            fidx = [max(i for i, o in enumerate(offsets) if p["s"] >= o - 0.01) for p in live]
+            chosen, covered = {}, set()
+            for f in range(len(a.input) - 1, -1, -1):
+                ch = dp_choose([i for i in range(len(live)) if fidx[i] == f])
+                mine = {}
+                for idx, (st, en, r) in ch.items():
+                    if sum(1 for x in range(st, en) if x in covered) >= 0.5 * (en - st):
+                        continue  # あとのファイルで読み直している
+                    mine[idx] = (st, en, r)
+                for st, en, r in mine.values():
+                    covered.update(range(st, en))
+                chosen.update(mine)
             for idx, (p, k) in enumerate(zip(live, K)):
                 if idx in chosen:
                     st, en, r = chosen[idx]
@@ -327,7 +342,7 @@ def main():
                 # あとで残した句が台本の同じ箇所を覆っていれば読み直し
                 later_cov = set()
                 for j in chosen:
-                    if j > idx:
+                    if j > idx or fidx[j] > fidx[idx]:
                         later_cov.update(range(chosen[j][0], chosen[j][1]))
                 redo = [h for h in hits if sum(1 for x in range(h[0], h[1]) if x in later_cov) >= 0.7 * (h[1] - h[0])]
                 near = any(abs(q["s"] - p["e"]) < 1.2 or abs(p["s"] - q["e"]) < 1.2
@@ -342,6 +357,19 @@ def main():
                     p["why"] = "台本にない短い音（物音や言いよどみと見られる）"
                 else:
                     p["why"] = "台本にない読み（残す。要確認）"
+            # 仕上げの並びは台本の順。台本に当たらない句は、同じファイルで直前に残した句のすぐあとに置く
+            for idx, p in enumerate(live):
+                if idx in chosen:
+                    p["spos"] = (chosen[idx][0], 0, idx)
+                else:
+                    prev = [j for j in chosen if fidx[j] == fidx[idx] and j < idx]
+                    nxt = [j for j in chosen if fidx[j] == fidx[idx] and j > idx]
+                    if prev:
+                        p["spos"] = (chosen[max(prev)][0], 1, idx)
+                    elif nxt:
+                        p["spos"] = (chosen[min(nxt)][0], -1, idx)
+                    else:
+                        p["spos"] = (10 ** 9, 0, idx)
             # 残した句と句のあいだにある「残さなかった句」の並びに読み直しが1つでもあれば、並び全体を読み直しとみなす
             # （文字起こしが「わか」を「分か」と書き「ぶんか」と読まれるなど、台本に当たらない断片が残るのを防ぐ）
             run = []
@@ -402,7 +430,8 @@ def main():
                 if p["gap"] is None:
                     p["punct"] = "終"
                 else:
-                    p["punct"] = "。" if (last == "。" or p["gap"] >= per[file_of(p["s"])]) else "、"
+                    # 文字起こしが付けた句読点を先に使う（抑揚と文のつながりから付く）。なければ間の長さで決める
+                    p["punct"] = last if last in "、。" and last else ("。" if p["gap"] >= per[file_of(p["s"])] else "、")
             print("「。」の境（ファイルごと）:", {a.input[k]: round(v, 2) for k, v in per.items()})
             long_gap = "ファイルごと"
         elif a.long_gap is not None:
@@ -425,7 +454,9 @@ def main():
             last = p["text"].strip()[-1:] if p["text"].strip() else ""
             if p["gap"] is None:
                 p["punct"] = "終"
-            elif last == "。" or p["gap"] >= long_gap:
+            elif last in ("、", "。"):
+                p["punct"] = last  # 文字起こしが付けた句読点を先に使う
+            elif p["gap"] >= long_gap:
                 p["punct"] = "。"
             else:
                 p["punct"] = "、"
@@ -450,6 +481,11 @@ def main():
     kept = [p for p in ph if p["keep"]]
     if not kept:
         sys.exit("残す句がありません")
+    if all("spos" in p for p in kept):
+        kept.sort(key=lambda p: p["spos"])  # 台本の順に並べる（録り直しのファイルの順に左右されない）
+    for p in kept[:-1]:
+        if p["punct"] == "終":
+            p["punct"] = "。"  # ファイルの最後の句でも、仕上げの途中なら「。」の間
     kept[-1]["punct"] = "終"
 
     # phrases.tsv
