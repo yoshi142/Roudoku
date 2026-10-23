@@ -27,7 +27,9 @@
 
 - 文学の朗読はパブリックドメインに限る。青空文庫の図書カードに「著作権存続」の表示がないこと、翻訳は訳者の権利も切れていることを確認する（narration/catalog.md に確認済みの一覧）
 - 録音の原音は無加工で保存する（将来の音声合成の学習素材）。音声・動画はコミットしない（.gitignore 済み）
-- サムネイルは tools/make_thumbnail_v2.py で作る。背景は本人の写真か、パブリックドメイン／CC0 の画像のみ。出典を tools/backgrounds/README.md と説明文に書く。旧版 tools/make_thumbnail.py は使わない
+- タイトルは「作品名　作者名｜朗読 本人の名前」。「【朗読】」で始めない。単品に「睡眠・寝落ち」「全文」を入れない（docs/analysis/report.md の分析による）
+- 録る順番は narration/catalog.md の「録る順番」に従う
+- サムネイルは tools/make_thumbnail_v2.py で作る。暗い部分は画面の2割程度まで、白い太字を大きく。背景は本人の写真か、パブリックドメイン／CC0 の画像のみ。出典を tools/backgrounds/README.md と説明文に書く。旧版 tools/make_thumbnail.py は使わない
 - 他の制作者のサムネイル画像はリポジトリに入れない（調査は作業フォルダで行い、数値と動画 ID だけを残す）
 - 購入の提案は、公式ページなどの出典つきで価格と理由を示す。契約と支払いは本人
 - コミットとプッシュは作業の区切りごとに行う（ブランチ master）
@@ -35,6 +37,7 @@
 ## 主なファイル
 
 - docs/handoff.md　引き継ぎと依頼（毎セッションの終わりに更新する）
+- docs/analysis/report.md　伸びている朗読動画の分析（2026-10-23）。骨子は docs/analysis/plan.md
 - docs/thumbnail-research.md　サムネイル調査（2026-10-23）
 - docs/branding.md　ブランド方針　／　docs/equipment.md　機材と有料ツールの候補
 - narration/catalog.md　朗読の題材一覧　／　narration/trial-*/　各回の台本・文面・記録
