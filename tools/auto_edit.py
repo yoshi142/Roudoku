@@ -214,11 +214,13 @@ def main():
     ap.add_argument("--model", default="medium")
     ap.add_argument("--comma", type=float, default=0.6, help="「、」の間（秒）")
     ap.add_argument("--period", type=float, default=1.5, help="「。」の間（秒）")
-    ap.add_argument("--after_title", type=float, default=2.0, help="題名と作者名のあとの間（秒）")
+    ap.add_argument("--after_title", type=float, default=2.0, help="題名と作者名のあとの間（秒）。--keep_head のときだけ使う")
+    ap.add_argument("--keep_head", action="store_true",
+                    help="題名と作者名の読み上げを残す。既定では外し、本文から始める（本人の指示、2026-10-23）")
     ap.add_argument("--long_gap", type=float, default=None, help="この秒数以上の間は「。」とみなす（既定は録音から自動）")
     ap.add_argument("--min_gap", type=float, default=0.25, help="これより短い途切れは句の中とみなす")
     ap.add_argument("--thr_db", type=float, default=None, help="声とみなす音量（dB）。既定は自動")
-    ap.add_argument("--lead", type=float, default=0.6, help="冒頭の無音（秒）")
+    ap.add_argument("--lead", type=float, default=1.5, help="冒頭の無音（秒）。動画は黒から1.2秒でフェードインするので、その後に本文が始まるように")
     ap.add_argument("--tail", type=float, default=2.5, help="末尾の無音（秒）")
     ap.add_argument("--phrases", help="手で直した phrases.tsv を読み込み、判定をやり直さずに音声だけ作る")
     a = ap.parse_args()
@@ -437,6 +439,14 @@ def main():
             if "last_head" in locals():
                 last_head["punct"] = "題"
 
+    # 題名と作者名の読み上げは外し、本文から始める（本人の指示、2026-10-23）。照合には使うので、ここで外す
+    if not a.phrases and skana and not a.keep_head:
+        hl = len(kana(script.split("\n", 1)[0]))
+        for p in ph:
+            m = re.search(r"台本 (\d+)〜(\d+) 字目", p["why"])
+            if p["keep"] and m and int(m.group(2)) <= hl + 1:
+                p["keep"] = False
+                p["why"] = "題名と作者名（動画は本文から始める）"
     kept = [p for p in ph if p["keep"]]
     if not kept:
         sys.exit("残す句がありません")
