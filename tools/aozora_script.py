@@ -102,7 +102,9 @@ def main():
     intro = open(a.intro, encoding='utf-8').read().strip() if a.intro else ''
     outro = open(a.outro, encoding='utf-8').read().strip() if a.outro else ''
     extra = open(a.extra, encoding='utf-8').read().strip() if a.extra else ''
-    n_body, n_total = count(body), count(body) + count(intro) + count(outro)
+    # 冒頭の紹介は読まない（本人の判断、2026-10-23）。--intro の文は説明文用に台本の末尾へ残す
+    intro_note = ('\n## 参考：紹介（読まない。説明文や画面の字幕に使える）\n\n' + intro + '\n') if intro else ''
+    n_body, n_total = count(body), count(body) + count(a.title) + count(a.author) + count(outro)
     rate = 250 if a.poem else 300
     est = n_total / rate
     md = f'''# 台本：{a.author}「{a.title}」{('（' + a.trial + '）') if a.trial else ''}
@@ -120,11 +122,11 @@ Ver.1.0　作成日：2026-10-22　作成：AI　読み手：本人
 
 ---
 
-## 1　はじめに　【落ち着いた声で】
+## 1　題名と作者　【本文と同じ声で。挨拶や紹介はせず、すぐ本文に入る】
 
-{intro}
+{a.title}。／{a.author}。／／
 
-【3秒、黙る】
+【1秒、黙る】
 
 ## 2　{a.heading}　【ここから本文。急がない】
 
@@ -141,7 +143,7 @@ Ver.1.0　作成日：2026-10-22　作成：AI　読み手：本人
 ---
 
 {extra}
-
+{intro_note}
 ## 出典
 
 {a.author}「{a.title}」青空文庫　{a.card}
