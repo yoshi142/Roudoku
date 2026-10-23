@@ -2,6 +2,30 @@
 
 録音ファイル（原音）が `narration/trial-NN/raw/` に置かれたあと、AI が次の順で実行する。原音は上書きしない。
 
+2026-10-23 からの手順（録り方：言い直しは同じ行を頭から読み直す。手拍子はしない）。処理の前に docs/knowhow.md を読む。
+
+```
+# 0) フォント（初回のみ）と依存
+tools/fetch_fonts.sh
+pip install faster-whisper pykakasi && pip install --use-pep517 fugashi unidic-lite
+
+# 1) 届いた m4a を raw/ に置き、無加工の WAV も作る（元の m4a も残す）
+ffmpeg -i 届いたファイル.m4a -map 0:a:0 -c:a pcm_s24le narration/trial-01/raw/trial-01_take01.wav
+
+# 2) 読み直しの切り詰めと「、」「。」の間そろえ（台本と照合して最後の読みを残す）
+python3 tools/auto_edit.py narration/trial-01/raw/trial-01_take01.wav --out narration/trial-01/out/auto --script narration/trial-01/script.md
+#    → out/auto/report.md（残した読み、捨てた区間、台本との違い）を読む。直すときは phrases.tsv を書き換えて --phrases で作り直す
+
+# 3) 整音（圧縮 → -16 LUFS → リミッター）
+tools/process_audio.sh narration/trial-01/out/auto/edited.wav narration/trial-01/out/trial-01_mastered
+
+# 4) 静止画（朗読者名なし）と動画
+python3 tools/make_thumbnail_v2.py --bg tools/backgrounds/<背景> --title 作品名 --author 作者 --out narration/trial-01/out/thumbnail_v2.png --preview
+tools/make_video.sh narration/trial-01/out/thumbnail_v2.png narration/trial-01/out/trial-01_mastered.wav narration/trial-01/out/trial-01.mp4
+```
+
+以下は 2026-10-22 の旧手順（手拍子を合図にした切り詰め）。手拍子で録った録音にだけ使う。
+
 ```
 # 0) フォント（初回のみ。IPAex明朝、IPAフォントライセンス）
 tools/fetch_fonts.sh
@@ -40,7 +64,7 @@ tools/make_video.sh narration/trial-01/out/thumbnail.png narration/trial-01/out/
 
 依存：ffmpeg 6 以上、Python 3 と Pillow、NumPy、faster-whisper（`pip install faster-whisper`。初回にモデルを取得する）。すべて無料。
 
-目安：YouTube はおおむね -14 LUFS を基準に再生音量をそろえるため、整音の目標を -14 LUFS、トゥルーピーク -1 dBTP とした。
+目安：YouTube はおおむね -14 LUFS を基準に再生音量をそろえる。スマートフォンの録音は瞬間的なピークが高く、-14 まで上げると声がつぶれるおそれがあるので、2026-10-23 から目標を -16 LUFS、トゥルーピーク -1 dBTP 以下とした（docs/knowhow.md）。
 
 ## そのほかの道具
 

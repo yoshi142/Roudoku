@@ -1,26 +1,34 @@
 #!/usr/bin/env bash
-# 整音：ノイズ軽減 → 高域/低域の整理 → 2パスのラウドネス正規化（YouTube 向け -14 LUFS）
+# 整音：ハイパス → ノイズ軽減 → 軽い圧縮 → 目標の音量まで上げる → リミッター
 # 間や息づかいを削るゲート処理は入れない。
-# 使い方: tools/process_audio.sh input.wav output_basename [noise_reduction_db(=12)]
-#   出力: output_basename.wav（48kHz/24bit、動画用）と output_basename.m4a（配布用）
+# 使い方: tools/process_audio.sh input.wav output_basename [noise_reduction_db(=4)] [target_lufs(=-16)]
+#   出力: output_basename.wav（48kHz/24bit モノラル、動画用）と output_basename.m4a（配布用 192kbps）
+#
+# 2026-10-23 の雨ニモマケズで決めたこと（docs/knowhow.md の「整音」）
+# - スマートフォンの録音は子音の瞬間的なピークが平均より 20 dB 以上高く、loudnorm の線形モードでは -14 LUFS に届かない
+#   （届かないと loudnorm は動的モードに切り替わり、音量が揺れる）。そこで圧縮とリミッターでピークを抑えてから上げる
+# - 目標は -16 LUFS。-14 にするとピークを約10 dB 削ることになり、声がつぶれるおそれがある。
+#   YouTube は大きい音を下げるだけで上げないので、-14 の動画より約2 dB 小さく聞こえる。-16 はポッドキャストでも一般的
+# - Pixel のレコーダーは録音時にノイズ抑制がかかっていて無音部分が静かなので、ノイズ軽減は弱く（4 dB）
 set -euo pipefail
-IN="$1"; OUT="$2"; NR="${3:-12}"
+IN="$1"; OUT="$2"; NR="${3:-4}"; TARGET="${4:-16}"
+TARGET="${TARGET#-}"
 mkdir -p "$(dirname "$OUT")"
-TARGET_I=-14; TARGET_TP=-1.0; TARGET_LRA=11
-
 TMP="$(mktemp -d)"
-# 1) ノイズ軽減（afftdn: FFT ノイズ低減。nr=低減量 dB、nf=ノイズフロア推定 dBFS、tn=ノイズ追従）
-#    ハイパス 70Hz で机やエアコンの低い唸りを、ローパスはかけない（息づかいの質感を残す）
-ffmpeg -y -v error -i "$IN" -af "highpass=f=70:poles=2,afftdn=nr=${NR}:nf=-50:tn=1" -ar 48000 -ac 1 -c:a pcm_s24le "$TMP/step1.wav"
 
-# 2) ラウドネス計測（1パス目）
-STATS=$(ffmpeg -nostats -hide_banner -i "$TMP/step1.wav" -af "loudnorm=I=${TARGET_I}:TP=${TARGET_TP}:LRA=${TARGET_LRA}:print_format=json" -f null - 2>&1 | sed -n '/{/,/}/p')
-g() { echo "$STATS" | grep "\"$1\"" | sed 's/.*: *"\([^"]*\)".*/\1/'; }
-II=$(g input_i); ITP=$(g input_tp); ILRA=$(g input_lra); ITH=$(g input_thresh); OFF=$(g target_offset)
-echo "measured: I=${II} LUFS, TP=${ITP} dBTP, LRA=${ILRA}, thresh=${ITH}, offset=${OFF}"
+# 1) ハイパス 70Hz、ノイズ軽減、軽い圧縮（-26 dB から 2.5:1）
+ffmpeg -y -v error -i "$IN" -af "highpass=f=70:poles=2,afftdn=nr=${NR}:nf=-50:tn=1,acompressor=threshold=-26dB:ratio=2.5:attack=8:release=200:knee=4" \
+  -ar 48000 -ac 1 -c:a pcm_s24le "$TMP/step1.wav"
 
-# 3) ラウドネス正規化（2パス目、linear=true で可能なら線形ゲインのみ）
-ffmpeg -y -v error -i "$TMP/step1.wav" -af "loudnorm=I=${TARGET_I}:TP=${TARGET_TP}:LRA=${TARGET_LRA}:measured_I=${II}:measured_TP=${ITP}:measured_LRA=${ILRA}:measured_thresh=${ITH}:offset=${OFF}:linear=true:print_format=summary" -ar 48000 -c:a pcm_s24le "${OUT}.wav" 2>&1 | grep -E "Output Integrated|Output True Peak|Output LRA|Normalization Type" || true
+# 2) 音量を測り、目標との差を求める
+MEAS=$(ffmpeg -nostats -hide_banner -i "$TMP/step1.wav" -af ebur128 -f null - 2>&1 | grep -E "^\s+I:" | tail -1 | awk '{print $2}')
+GAIN=$(python3 -c "print(round(-${TARGET} - (${MEAS}) + 0.6, 2))")   # リミッターで少し下がる分を見込む
+echo "measured: I=${MEAS} LUFS → gain ${GAIN} dB"
+
+# 3) 上げてリミッター（-3 dBFS。トゥルーピークが -1 dBTP を超えないように余裕をとる）
+ffmpeg -y -v error -i "$TMP/step1.wav" -af "volume=${GAIN}dB,alimiter=limit=0.708:attack=2:release=50:level=false" \
+  -ar 48000 -c:a pcm_s24le "${OUT}.wav"
+ffmpeg -nostats -hide_banner -i "${OUT}.wav" -af ebur128=peak=true -f null - 2>&1 | grep -E "^\s+(I:|LRA:|Peak:)" | tail -3
 
 # 4) 配布用 AAC（192kbps）
 ffmpeg -y -v error -i "${OUT}.wav" -c:a aac -b:a 192k "${OUT}.m4a"
