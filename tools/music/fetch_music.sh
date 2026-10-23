@@ -12,12 +12,14 @@ mkdir -p "$DEST"
 LIST='
 Satie_Gymnopedie1_RobinAlciatore.ogg|https://upload.wikimedia.org/wikipedia/commons/9/90/Erik_Satie_-_gymnopedies_-_la_1_ere._lent_et_douloureux.ogg
 Debussy_ClairDeLune_LaurensGoedhart.ogg|https://upload.wikimedia.org/wikipedia/commons/b/be/Clair_de_lune_%28Claude_Debussy%29_Suite_bergamasque.ogg
-Chopin_NocturneOp9No2_Musopen.m4a|https://archive.org/download/musopen-chopin/Nocturne%20Op.%209%20no.%202%20in%20E%20flat%20major.m4a
+Chopin_NocturneOp9No2_AyaHiguchi.m4a|https://archive.org/download/musopen-chopin/Nocturne%20Op.%209%20no.%202%20in%20E%20flat%20major.m4a
 Bach_GoldbergAria_KimikoIshizaka.mp3|https://archive.org/download/The_Open_Goldberg_Variations-11823/Kimiko_Ishizaka_-_01_-_Aria.mp3
 Grieg_AasesDeath_CzechNationalSO-Musopen.m4a|https://archive.org/download/musopen-lossless-dvd/Musopen-Lossless-DVD.zip/Musopen%20DVD%20%28lossless%29%2FGrieg%20-%20Peer%20Gynt%2FPeer%20Gynt%20Suite%20No.%201%2C%20Op.%2046%20-%20II.%20Aase%27s%20Death.m4a
 Field_LightRainDistantThunder_kvgarlic.wav|https://upload.wikimedia.org/wikipedia/commons/b/b6/Light_Rain_Distant_Thunder_July_5th_2016.wav
 Field_SnowmeltStream_Extemporalist.flac|https://upload.wikimedia.org/wikipedia/commons/8/8d/Snowmelt_flowing_into_lake_at_Okanagan_Mountain_Provincial_Park.flac
 Field_Crickets-Grillos_AlbertMurillo.wav|https://archive.org/download/Grillos_201902/Grillos.wav
+Field_SummerRain-PlujaARiumors_AlbertMurillo.mp3|https://archive.org/download/pluja-a-riumors/pluja%20a%20riumors.mp3
+Field_River-Reykjaladur_AlbertMurillo.flac|https://archive.org/download/ReykjaladurRiver/Reykjaladur%20river.flac
 '
 
 failed=()
