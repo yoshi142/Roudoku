@@ -3,7 +3,7 @@
 
 - ルビは「漢字（よみ）」に直す。読点・句点の位置に「／」、段落の切れ目に「／／」を入れる
 - --start/--end で、詩集などから一篇だけを切り出す（本文中の文字列で指定。end は含まない）
-- --intro/--outro に本人の語り（Markdown テキストファイル）を渡す。--extra で補足（Markdown）を末尾に足す
+- --intro/--outro の文は読まない（本人の指示、2026-10-23：冒頭の紹介とおわりの語りはやめた）。渡すと、説明文用の参考として台本の末尾に残る。--extra で補足（Markdown）を末尾に足す
 - 文字数（読み・記号・指示を除く）を数えて見出しに書く
 
 使い方:
@@ -103,8 +103,8 @@ def main():
     outro = open(a.outro, encoding='utf-8').read().strip() if a.outro else ''
     extra = open(a.extra, encoding='utf-8').read().strip() if a.extra else ''
     # 冒頭の紹介は読まない（本人の判断、2026-10-23）。--intro の文は説明文用に台本の末尾へ残す
-    intro_note = ('\n## 参考：紹介（読まない。説明文や画面の字幕に使える）\n\n' + intro + '\n') if intro else ''
-    n_body, n_total = count(body), count(body) + count(a.title) + count(a.author) + count(outro)
+    intro_note = ''.join(f'\n## 参考：{h}（読まない。説明文に使える）\n\n{t}\n' for h, t in [('紹介', intro), ('おわりの文', outro)] if t)
+    n_body, n_total = count(body), count(body) + count(a.title) + count(a.author)
     rate = 250 if a.poem else 300
     est = n_total / rate
     md = f'''# 台本：{a.author}「{a.title}」{('（' + a.trial + '）') if a.trial else ''}
@@ -118,7 +118,7 @@ Ver.1.0　作成日：2026-10-22　作成：AI　読み手：本人
 - （　）　読み。読まない。青空文庫のルビをそのまま使った
 - 【　】　録音のときの指示。読まない
 
-想定尺：約{est:.0f}〜{est * 1.3:.0f}分（本文 約{n_body:,}字、語りを含めて 約{n_total:,}字。読みと指示を除く）
+想定尺：約{est:.0f}〜{est * 1.3:.0f}分（本文 約{n_body:,}字、読みと指示を除く）
 
 ---
 
@@ -132,13 +132,7 @@ Ver.1.0　作成日：2026-10-22　作成：AI　読み手：本人
 
 {body}
 
-【5秒、黙る】
-
-## 3　おわりに　【声の高さを少し戻して】
-
-{outro}
-
-【3秒、黙ってから録音を止める】
+【読み終えたら3秒黙って、録音を止める。おわりの語りは読まない】
 
 ---
 

@@ -3,6 +3,7 @@
 
 入力：poems.json（tools/extract_poems.py で作る）。出力：narration/trial-09-shi-yuki/、trial-10-shi-koi/、trial-11-eiketsu/ の script.md
 旧かなから現代かなへの置き換え表（T_yogore など）は作品ごとに手で書いてある。新しい詩を足すときは、表を足して section() を呼ぶ。
+2026-10-23：冒頭の紹介とおわりの語りを読まない形に直した（本人の指示）。
 使い方: python3 tools/poem_scripts.py poems.json   （リポジトリの直下で実行。上書きされるので、直した台本があるときは注意）
 """
 import json,re,sys
@@ -64,20 +65,23 @@ Ver.1.0　作成日：2026-10-22　作成：AI　読み手：本人
 
 ---
 
-## 1　はじめに　【落ち着いた声で】
+## 1　朗読　【一篇ごとに題名と作者を言ってから読む。篇と篇のあいだは5秒】
+
+'''
+# 冒頭の紹介とおわりの語りは読まない（本人の指示、2026-10-23）。文は説明文用の参考として末尾に残す
+tail='''【読み終えたら3秒黙って、録音を止める。おわりの語りは読まない】
+
+---
+
+## 参考：外した冒頭の紹介とおわりの語り（読まない。説明文や画面の文字に使える）
+
+### 冒頭の紹介
 
 {intro}
 
-【3秒、黙る】
-
-## 2　朗読　【一篇ごとに題名と作者を言ってから読む。篇と篇のあいだは5秒】
-
-'''
-tail='''## 3　おわりに　【声の高さを少し戻して】
+### おわりの語り
 
 {outro}
-
-【3秒、黙ってから録音を止める】
 '''
 intro1='''こんにちは。／
 今日は、／教科書でおなじみの短い詩を、／三篇（さんぺん）読みます。／／
@@ -91,8 +95,8 @@ s1=section('雪','三好達治','https://www.aozora.gr.jp/cards/001749/card55797
 s2=section('風景　純銀もざいく','山村暮鳥','https://www.aozora.gr.jp/cards/000136/card52348.html','初出：詩集「聖三稜玻璃（せいさんりょうはり）」1915（大正4）年',P['fukei'],P['fukei'],'注：「いちめんのなのはな」が二十一回出てくる。一行ずつ同じ調子で、速さを変えずに。「かすかなるむぎぶえ」「ひばりのおしやべり（おしゃべり）」「やめるはひるのつき」の三行だけ、わずかに声を変える。「やめる」は「病める」。')
 s3=section('竹','萩原朔太郎','https://www.aozora.gr.jp/cards/000067/card859.html','詩集『月に吠える』（1917年）所収。底本は図書カード参照',P['take'],P['take'].replace('まつしぐら','まっしぐら'),'注：『月に吠える』には「竹」が二篇ある。ここで読むのは「光る地面に竹が生え」で始まるほう。「繊毛（せんもう）」「節節（ふしぶし）」「りんりん」。終わりの「竹、竹、竹が生え。」は強くしすぎない。')
 body=s1+'\n'+s2+'\n'+s3
-n=count(intro1)+count(outro1)+sum(count(lines(x)) for x in [P['yuki'],P['fukei'],P['take']])
-open('narration/trial-09-shi-yuki/script.md','w',encoding='utf-8').write(head.format(t='教科書の詩・三篇「雪」「風景」「竹」（短編 第5回）',est='約4分（詩 約2分半、語り 約1分半）',n=n,intro=intro1)+body+'\n'+tail.format(outro=outro1))
+n=sum(count(lines(x)) for x in [P['yuki'],P['fukei'],P['take']])
+open('narration/trial-09-shi-yuki/script.md','w',encoding='utf-8').write(head.format(t='教科書の詩・三篇「雪」「風景」「竹」（短編 第5回）',est='約2分半（詩のみ）',n=n)+body+'\n'+tail.format(intro=intro1,outro=outro1))
 print('trial-09',n)
 intro2='''こんにちは。／
 今日は、／教科書でおなじみの詩を、／三篇（さんぺん）読みます。／／
@@ -109,8 +113,8 @@ s1=section('汚れっちまった悲しみに……','中原中也','https://www
 s2=section('初恋','島崎藤村','https://www.aozora.gr.jp/cards/000158/card1508.html','詩集『若菜集』（1897年）所収。底本：「藤村詩集」新潮文庫、1968年2月10日',P['hatsukoi'],modern(P['hatsukoi'],T_hatsukoi),'注：七五調。「初（そ）めし」「花櫛（はなぐし）」「薄紅（うすくれない）」「情（なさけ）」「酌（く）みし」「誰（た）が」。拍子に乗りすぎず、言葉の意味で切る。')
 s3=section('あどけない話','高村光太郎','https://www.aozora.gr.jp/cards/001168/card46669.html','詩集『智恵子抄』（1941年）所収。底本：「智恵子抄」新潮文庫、1956年7月15日、1967年12月15日43刷改版',P['adokenai'],modern(P['adokenai'],T_adokenai),'注：「阿多多羅山（あたたらやま）」は福島の安達太良山。最後の「あどけない空の話である。」は静かに。')
 body=s1+'\n'+s2+'\n'+s3
-n=count(intro2)+count(outro2)+sum(count(lines(x)) for x in [P['yogore'],P['hatsukoi'],P['adokenai']])
-open('narration/trial-10-shi-koi/script.md','w',encoding='utf-8').write(head.format(t='教科書の詩・三篇「汚れっちまった悲しみに」「初恋」「あどけない話」（短編 第6回）',est='約5分（詩 約3分半、語り 約1分半）',n=n,intro=intro2)+body+'\n'+tail.format(outro=outro2))
+n=sum(count(lines(x)) for x in [P['yogore'],P['hatsukoi'],P['adokenai']])
+open('narration/trial-10-shi-koi/script.md','w',encoding='utf-8').write(head.format(t='教科書の詩・三篇「汚れっちまった悲しみに」「初恋」「あどけない話」（短編 第6回）',est='約3分半（詩のみ）',n=n)+body+'\n'+tail.format(intro=intro2,outro=outro2))
 print('trial-10',n)
 intro3='''こんにちは。／
 今日は、／宮沢賢治（みやざわ・けんじ）の／「永訣（えいけつ）の朝」を読みます。／／
@@ -130,8 +134,8 @@ outro3='''宮沢賢治、／「永訣の朝」でした。／／
 聞いていただいて、／ありがとうございました。／／'''
 mod=modern(P['eiketsu'],T_eiketsu)
 s1=section('永訣の朝','宮沢賢治','https://www.aozora.gr.jp/cards/000081/card1058.html','『春と修羅』（1924年）所収。底本：「宮沢賢治全集1」ちくま文庫、筑摩書房、1986年2月26日第1刷。入力：柴田卓治、校正：かとうかおり',P['eiketsu'],mod,'注：かっこの中の方言は、少し小さな声で、ゆっくり。「（＊Ora Orade Shitori egumo）」は「おら、おらで、ひとり、えぐも」（わたしは、わたしで、ひとりで行きます）と読む。「陰惨（いんざん）」「蓴菜（じゅんさい）」「陶椀（とうわん）」「蒼鉛（そうえん）」「二相系（にそうけい）」「資糧（しりょう）」。最後の日付「一九二二、一一、二七」は読まなくてよい。')
-n=count(intro3)+count(outro3)+count(lines(mod))
-open('narration/trial-11-eiketsu/script.md','w',encoding='utf-8').write(head.format(t='宮沢賢治「永訣の朝」（短編 第7回）',est='約6分（詩 約4分半、語り 約1分半）',n=n,intro=intro3)+s1+'\n'+tail.format(outro=outro3))
+n=count(lines(mod))
+open('narration/trial-11-eiketsu/script.md','w',encoding='utf-8').write(head.format(t='宮沢賢治「永訣の朝」（短編 第7回）',est='約4分半（詩のみ）',n=n)+s1+'\n'+tail.format(intro=intro3,outro=outro3))
 print('trial-11',n)
 for k,m in [('yogore',modern(P['yogore'],T_yogore)),('hatsukoi',modern(P['hatsukoi'],T_hatsukoi)),('adokenai',modern(P['adokenai'],T_adokenai)),('eiketsu',mod)]:
     sus=re.findall(r'.{0,5}(?:ゐ|ゑ|つて|つた|やう|ゃう|ふ(?![ぉり])|へ(?!ん)|ほ(?!ん)|ぢ|づ).{0,5}',m)
